@@ -1143,12 +1143,12 @@ Rubeus renew /ticket:<kirbi>
 <details>
   <summary><strong>65. Trust Abuse - MSSQL Servers</strong></summary>
 
-- ✅ <strong>Purpose</strong>: Lateral movement or privilege escalation using trusted MSSQL links  
-- ✅ <strong>Functionality</strong>: MSSQL servers can be linked via <code>sp_addlinkedserver</code>, allowing commands to be run remotely  
-- ✅ <strong>Why It's Vulnerable</strong>: Poorly secured links, weak permissions, or trust misconfigurations can be abused  
-- ✅ <strong>How to Test</strong>: Attempt to enumerate or create linked servers and run remote commands via <code>xp_cmdshell</code>  
-- ✅ <strong>Tools</strong>: <code>mssqlclient.py</code>, <code>PowerUpSQL</code>, <code>sqsh</code>, <code>sqlcmd</code>  
-- ✅ <strong>Stealth Tips</strong>: Use SQL commands to stay within DB context; avoid noisy OS-level interactions  
+-  <strong>Purpose</strong>: Lateral movement or privilege escalation using trusted MSSQL links  
+-  <strong>Functionality</strong>: MSSQL servers can be linked via <code>sp_addlinkedserver</code>, allowing commands to be run remotely  
+-  <strong>Why It's Vulnerable</strong>: Poorly secured links, weak permissions, or trust misconfigurations can be abused  
+-  <strong>How to Test</strong>: Attempt to enumerate or create linked servers and run remote commands via <code>xp_cmdshell</code>  
+-  <strong>Tools</strong>: <code>mssqlclient.py</code>, <code>PowerUpSQL</code>, <code>sqsh</code>, <code>sqlcmd</code>  
+-  <strong>Stealth Tips</strong>: Use SQL commands to stay within DB context; avoid noisy OS-level interactions  
 
 <pre><code class="language-sql">
 -- Enable xp_cmdshell if allowed
