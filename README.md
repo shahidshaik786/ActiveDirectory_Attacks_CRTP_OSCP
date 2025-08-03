@@ -1,6 +1,6 @@
 # 🛡️ Active Directory Attack Techniques (Red Team Edition)
 
-This document provides a detailed walkthrough of **25 real-world Active Directory attack techniques**, optimized for **CRTP**, **OSCP**, and stealth-focused **Red Team operations**.
+This document provides a detailed walkthrough of **Real-world Active Directory attack techniques**, optimized for **CRTP**, **OSCP**, and stealth-focused **Red Team operations**.
 
 ---
 
