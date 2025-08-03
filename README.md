@@ -10,7 +10,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - 🧠 Understand how each technique works under the hood
 - 🛠 Tools and usage examples
 - 🕵️‍♂️ Red Team **stealth recommendations** for quiet execution
-- 📥 Downloadable HTML [Interactive Checklist](./ad_attack_checklist.html) available
+- 📥 Downloadable HTML [Interactive Checklist](./CRTP_OSCP_AD_CheckList.html) available
 
 ---
 
