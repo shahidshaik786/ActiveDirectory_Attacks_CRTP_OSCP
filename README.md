@@ -17,25 +17,25 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 ## 📑 Table of Contents
 - [1. AS-REP Roasting](#as-rep-roasting)
 - [2. Kerberoasting](#kerberoasting)
-- [3. Pass-the-Hash (PtH)](#pass-the-hash-pth)
-- [4. Pass-the-Ticket (PtT)](#pass-the-ticket-ptt)
+- [3. Pass-the-Hash (PtH)](#pass-the-hash-%28pth%29)
+- [4. Pass-the-Ticket (PtT)](#pass-the-ticket-%28ptt%29)
 - [5. DCSync Attack](#dcsync-attack)
 - [6. Unconstrained Delegation](#unconstrained-delegation)
 - [7. Constrained Delegation](#constrained-delegation)
-- [8. Resource-Based Constrained Delegation (RBCD)](#resource-based-constrained-delegation-rbcd)
+- [8. Resource-Based Constrained Delegation (RBCD)](#resource-based-constrained-delegation-%28rbcd%29)
 - [9. Silver Ticket](#silver-ticket)
 - [10. Golden Ticket](#golden-ticket)
-- [11. NTDS.dit Dump](#ntds.dit-dump)
+- [11. NTDS.dit Dump](#ntdsdit-dump)
 - [12. GPP Passwords](#gpp-passwords)
 - [13. LAPS Dumping](#laps-dumping)
 - [14. AdminSDHolder Abuse](#adminsdholder-abuse)
 - [15. ACL Abuse](#acl-abuse)
 - [16. Printer Spooler Bug](#printer-spooler-bug)
 - [17. Shadow Credentials](#shadow-credentials)
-- [18. Certificate Template Escalation (ESC1)](#certificate-template-escalation-esc1)
+- [18. Certificate Template Escalation (ESC1)](#certificate-template-escalation-%28esc1%29)
 - [19. Service Unquoted Path Abuse](#service-unquoted-path-abuse)
 - [20. RDP Hijack](#rdp-hijack)
-- [21. SAM & SYSTEM Hive Dump](#sam-&-system-hive-dump)
+- [21. SAM & SYSTEM Hive Dump](#sam-%26-system-hive-dump)
 - [22. LSA Secrets Dump](#lsa-secrets-dump)
 - [23. RID Cycling](#rid-cycling)
 - [24. Token Impersonation](#token-impersonation)
@@ -79,11 +79,15 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - [62. Malicious GPO Deployment](#malicious-gpo-deployment)
 - [63. Kerberos Constrained Delegation (KCD) Abuse](#kerberos-constrained-delegation-%28kcd%29-abuse)
 - [64. Unquoted Service Path Privilege Escalation](#unquoted-service-path-privilege-escalation)
+
 ---
+
+
 
 ## 📋 Attack Descriptions
 
 
+<a name="as-rep-roasting"></a>
 <details>
   <summary><strong>1. AS-REP Roasting</strong></summary>
 
@@ -97,6 +101,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="kerberoasting"></a>
 <details>
   <summary><strong>2. Kerberoasting</strong></summary>
 
@@ -110,6 +115,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="pass-the-hash-%28pth%29"></a>
 <details>
   <summary><strong>3. Pass-the-Hash (PtH)</strong></summary>
 
@@ -123,6 +129,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="pass-the-ticket-%28ptt%29"></a>
 <details>
   <summary><strong>4. Pass-the-Ticket (PtT)</strong></summary>
 
@@ -136,6 +143,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="dcsync-attack"></a>
 <details>
   <summary><strong>5. DCSync Attack</strong></summary>
 
@@ -149,6 +157,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="unconstrained-delegation"></a>
 <details>
   <summary><strong>6. Unconstrained Delegation</strong></summary>
 
@@ -162,6 +171,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="constrained-delegation"></a>
 <details>
   <summary><strong>7. Constrained Delegation</strong></summary>
 
@@ -175,6 +185,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="resource-based-constrained-delegation-%28rbcd%29"></a>
 <details>
   <summary><strong>8. Resource-Based Constrained Delegation (RBCD)</strong></summary>
 
@@ -188,6 +199,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="silver-ticket"></a>
 <details>
   <summary><strong>9. Silver Ticket</strong></summary>
 
@@ -201,6 +213,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="golden-ticket"></a>
 <details>
   <summary><strong>10. Golden Ticket</strong></summary>
 
@@ -214,6 +227,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="ntdsdit-dump"></a>
 <details>
   <summary><strong>11. NTDS.dit Dump</strong></summary>
 
@@ -227,6 +241,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="gpp-passwords"></a>
 <details>
   <summary><strong>12. GPP Passwords</strong></summary>
 
@@ -240,6 +255,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="laps-dumping"></a>
 <details>
   <summary><strong>13. LAPS Dumping</strong></summary>
 
@@ -253,6 +269,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="adminsdholder-abuse"></a>
 <details>
   <summary><strong>14. AdminSDHolder Abuse</strong></summary>
 
@@ -266,6 +283,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="acl-abuse"></a>
 <details>
   <summary><strong>15. ACL Abuse</strong></summary>
 
@@ -279,6 +297,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="printer-spooler-bug"></a>
 <details>
   <summary><strong>16. Printer Spooler Bug</strong></summary>
 
@@ -292,6 +311,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="shadow-credentials"></a>
 <details>
   <summary><strong>17. Shadow Credentials</strong></summary>
 
@@ -305,6 +325,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="certificate-template-escalation-%28esc1%29"></a>
 <details>
   <summary><strong>18. Certificate Template Escalation (ESC1)</strong></summary>
 
@@ -318,6 +339,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="service-unquoted-path-abuse"></a>
 <details>
   <summary><strong>19. Service Unquoted Path Abuse</strong></summary>
 
@@ -331,6 +353,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="rdp-hijack"></a>
 <details>
   <summary><strong>20. RDP Hijack</strong></summary>
 
@@ -344,6 +367,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="sam-%26-system-hive-dump"></a>
 <details>
   <summary><strong>21. SAM & SYSTEM Hive Dump</strong></summary>
 
@@ -357,6 +381,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="lsa-secrets-dump"></a>
 <details>
   <summary><strong>22. LSA Secrets Dump</strong></summary>
 
@@ -370,6 +395,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="rid-cycling"></a>
 <details>
   <summary><strong>23. RID Cycling</strong></summary>
 
@@ -383,6 +409,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="token-impersonation"></a>
 <details>
   <summary><strong>24. Token Impersonation</strong></summary>
 
@@ -396,6 +423,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 </details>
 
 
+<a name="wmi-lateral-movement"></a>
 <details>
   <summary><strong>25. WMI Lateral Movement</strong></summary>
 
@@ -876,5 +904,3 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Requires service restart; cleanup dropped files post-escalation.  
 
 </details>
-
-
