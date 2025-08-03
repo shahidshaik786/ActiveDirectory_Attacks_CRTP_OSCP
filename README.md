@@ -17,7 +17,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 ## 📑 Table of Contents
 - [1. AS-REP Roasting](#as-rep-roasting)
 - [2. Kerberoasting](#kerberoasting)
-- [3. Pass-the-Hash (PtH)](#pass-the-hash-%28pth%29)
+- [3. Pass-the-Hash (PtH)](#pass-the-hash)
 - [4. Pass-the-Ticket (PtT)](#pass-the-ticket-%28ptt%29)
 - [5. DCSync Attack](#dcsync-attack)
 - [6. Unconstrained Delegation](#unconstrained-delegation)
