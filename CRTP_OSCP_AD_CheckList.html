@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Active Directory Attack Checklist</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      color: #222;
+      margin: 0;
+      padding: 20px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      vertical-align: top;
+    }
+    th {
+      background-color: #007BFF;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+    .toggle-btn {
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .dark-mode {
+      background-color: #121212;
+      color: #eee;
+    }
+    .dark-mode table {
+      color: #eee;
+    }
+    .dark-mode th {
+      background-color: #333;
+    }
+    .dark-mode tr:nth-child(even) {
+      background-color: #222;
+    }
+  </style>
+</head>
+<body>
+  <h2>Active Directory Attack Checklist</h2>
+  <button class="toggle-btn" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+  <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search for attack, tools, etc...">
+
+  <table id="attackTable">
+    <thead>
+      <tr>
+        <th>✓</th>
+        <th>Attack</th>
+        <th>Purpose</th>
+        <th>Functionality</th>
+        <th>Vulnerability</th>
+        <th>How to Test</th>
+        <th>Tools</th>
+        <th>Stealth Tips</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>AS-REP Roasting</td>
+        <td>Offline cracking of user password hash</td>
+        <td>Kerberos allows unauthenticated ticket requests for users with DONT_REQ_PREAUTH</td>
+        <td>No pre-auth required, so TGT encrypted with weak password hash can be cracked</td>
+        <td>Use GetNPUsers.py or Rubeus to extract hashes; crack using hashcat</td>
+        <td>Impacket, Rubeus, hashcat</td>
+        <td>Use known usernames only; avoid brute-forcing; low log footprint</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Kerberoasting</td>
+        <td>Offline password cracking of service accounts</td>
+        <td>Any user can request a service ticket (TGS) for SPN accounts</td>
+        <td>Service ticket is encrypted with NTLM hash of the service account</td>
+        <td>Use Rubeus or GetUserSPNs.py to extract TGS and crack</td>
+        <td>Rubeus, Impacket, hashcat</td>
+        <td>Minimize TGS requests; monitor Event ID 4769</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Pass-the-Hash (PtH)</td>
+        <td>Authenticate without knowing plaintext password</td>
+        <td>Windows allows authentication using NTLM hashes</td>
+        <td>Captured NTLM hashes can be reused in SMB/WinRM</td>
+        <td>Use evil-winrm or wmiexec with hash</td>
+        <td>Mimikatz, Evil-WinRM, CrackMapExec</td>
+        <td>Use non-noisy protocols (e.g., WinRM); avoid failed auth</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Pass-the-Ticket (PtT)</td>
+        <td>Reuse Kerberos ticket for lateral movement</td>
+        <td>Kerberos TGTs and TGSs are valid for hours</td>
+        <td>Extracted tickets can be reused from other machines</td>
+        <td>Use Rubeus to inject TGT (.kirbi) into current session</td>
+        <td>Rubeus, Mimikatz</td>
+        <td>Use existing ticket times; avoid creating new tickets</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>DCSync Attack</td>
+        <td>Dump password hashes from DC without LSASS access</td>
+        <td>Accounts with Replication rights can request user secrets</td>
+        <td>Rights like Replicating Directory Changes allow this access</td>
+        <td>Use Mimikatz lsadump::dcsync /user:Administrator</td>
+        <td>Mimikatz, secretsdump.py</td>
+        <td>Limit to 1 request; Event ID 4662 if auditing enabled</td>
+      </tr>
+  
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Unconstrained Delegation</td>
+        <td>Steal TGTs from incoming users</td>
+        <td>Delegated systems cache TGTs of authenticating users in memory</td>
+        <td>Attacker can extract TGTs from memory if they control such a host</td>
+        <td>Dump LSASS on delegated host after privileged user login</td>
+        <td>Procdump, Mimikatz, Rubeus</td>
+        <td>Dump only after login; avoid repeated access</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Constrained Delegation</td>
+        <td>Impersonate users to a specific service</td>
+        <td>Service accounts can impersonate to target SPNs using user’s TGT</td>
+        <td>Abuse the delegation to impersonate DA to a specific service</td>
+        <td>Use S4U modules in Rubeus or Impacket to impersonate</td>
+        <td>Rubeus, Impacket</td>
+        <td>Limit usage; target non-logged services</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Resource-Based Constrained Delegation (RBCD)</td>
+        <td>Gain access to services by controlling delegation</td>
+        <td>AD allows specifying which accounts can delegate to a service</td>
+        <td>Create a machine account and assign it to RBCD of a target</td>
+        <td>Use PowerView or Set-ADComputer to set msDS-AllowedToActOnBehalfOfOtherIdentity</td>
+        <td>Rubeus, PowerView, Impacket</td>
+        <td>Prefer machine account reuse; avoid excessive LDAP changes</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Silver Ticket</td>
+        <td>Access services without contacting DC</td>
+        <td>TGS can be forged using service account’s NTLM hash</td>
+        <td>Use hash to forge TGS with Mimikatz or Rubeus</td>
+        <td>Create TGS for service and inject it</td>
+        <td>Mimikatz, Rubeus</td>
+        <td>Avoid Kerberos event logs; direct access to service</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Golden Ticket</td>
+        <td>Forge TGT and impersonate any user</td>
+        <td>If KRBTGT hash is known, you can forge valid TGTs</td>
+        <td>Use Mimikatz to forge TGT with domain SID and KRBTGT hash</td>
+        <td>Inject ticket into session and access DC</td>
+        <td>Mimikatz</td>
+        <td>Limit validity; cleanup injected tickets</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>NTDS.dit Dump</td>
+        <td>Extract all AD user hashes</td>
+        <td>NTDS.dit stores all password hashes for domain</td>
+        <td>Access DC and dump NTDS.dit and SYSTEM hive</td>
+        <td>Use secretsdump.py or DSInternals to parse</td>
+        <td>ntdsutil, secretsdump.py, DSInternals</td>
+        <td>Use VSS to avoid detection</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>GPP Passwords</td>
+        <td>Recover local admin creds from SYSVOL</td>
+        <td>Legacy Group Policy XML files stored with encrypted passwords</td>
+        <td>Locate Groups.xml and decrypt cpassword value</td>
+        <td>Search SYSVOL for GPP files, use gpp-decrypt</td>
+        <td>GPPDecrypt, SharpGPP</td>
+        <td>Read-only operation; no log generation</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>LAPS Dumping</td>
+        <td>Retrieve LAPS-managed local passwords</td>
+        <td>Passwords stored in AD attribute ms-MCS-AdmPwd</td>
+        <td>Query the attribute using a user with read rights</td>
+        <td>Get-ADComputer -Property ms-MCS-AdmPwd</td>
+        <td>PowerView, SharpLAPS</td>
+        <td>Check permissions before; no change needed</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>ACL Abuse</td>
+        <td>Escalate privileges using misconfigured permissions</td>
+        <td>GenericWrite, WriteOwner etc. on high-priv objects</td>
+        <td>Identify and exploit access rights</td>
+        <td>Use BloodHound to identify privilege escalation paths</td>
+        <td>BloodHound, PowerView</td>
+        <td>Exploit only one path at a time</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Printer Spooler Bug</td>
+        <td>Force authentication to attacker host</td>
+        <td>Spooler service allows remote connections and auth triggers</td>
+        <td>Trigger authentication using SpoolSample or PrinterBug</td>
+        <td>Redirect auth to NTLM relay listener</td>
+        <td>PrinterBug, Responder, Impacket</td>
+        <td>Disable after use; triggers events</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Shadow Credentials</td>
+        <td>Persist via malicious certificate mapping</td>
+        <td>UserCertificates attribute can store arbitrary certs</td>
+        <td>Inject malicious cert, then use it for impersonation</td>
+        <td>Use Whisker or Certipy to inject and authenticate</td>
+        <td>Certipy, Whisker</td>
+        <td>Remove cert after use</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Certificate Template Escalation (ESC1)</td>
+        <td>Enroll as admin via misconfigured template</td>
+        <td>Weak ACLs on template allow unauthorized enrollment</td>
+        <td>Request certificate with higher privilege permissions</td>
+        <td>Use Certify or Certipy to list and exploit templates</td>
+        <td>Certify, Certipy</td>
+        <td>Use short-lived certs, cleanup enrollment</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Service Unquoted Path Abuse</td>
+        <td>Privilege escalation to SYSTEM</td>
+        <td>Windows services with unquoted paths allow writing malicious exe</td>
+        <td>Replace exe in writable path and restart service</td>
+        <td>Use sc qc and accesschk to verify permissions</td>
+        <td>accesschk, sc.exe</td>
+        <td>Time replacement during service downtime</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>RDP Hijack</td>
+        <td>Intercept RDP session of DA</td>
+        <td>Logged-in sessions can be hijacked via TS API</td>
+        <td>Detect active RDP session and take over</td>
+        <td>Use tscon.exe to connect to existing session</td>
+        <td>tscon.exe</td>
+        <td>Only works locally; use with caution</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>SAM & SYSTEM Hive Dump</td>
+        <td>Dump local hashes from registry</td>
+        <td>SAM & SYSTEM registry hives store local account credentials</td>
+        <td>Export hives and parse offline</td>
+        <td>Use reg.exe or Volume Shadow Copy</td>
+        <td>reg.exe, secretsdump.py</td>
+        <td>Use shadow copy to avoid lock issues</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>LSA Secrets Dump</td>
+        <td>Retrieve stored service creds</td>
+        <td>LSA stores secrets like service passwords and cached creds</td>
+        <td>Dump registry and parse using tools</td>
+        <td>Export HKLM\SECURITY and SYSTEM</td>
+        <td>secretsdump.py, mimikatz</td>
+        <td>Requires SYSTEM; avoid writing to disk</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>RID Cycling</td>
+        <td>Enumerate users by RID brute-force</td>
+        <td>SAMR protocol allows RID lookup</td>
+        <td>Cycle RIDs from 500–1500 to find valid users</td>
+        <td>Use rpcclient or crackmapexec</td>
+        <td>rpcclient, CME</td>
+        <td>Limit RID range; avoid excessive RPC calls</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>Token Impersonation</td>
+        <td>Steal tokens from other sessions</td>
+        <td>Access tokens can be duplicated from running processes</td>
+        <td>Enumerate and impersonate tokens via Mimikatz</td>
+        <td>token::list and token::elevate</td>
+        <td>Mimikatz</td>
+        <td>Only do on high-integrity sessions</td>
+      </tr>
+    
+      <tr>
+        <td><input type="checkbox"></td>
+        <td>WMI Lateral Movement</td>
+        <td>Execute commands on remote hosts</td>
+        <td>WMI allows remote management access</td>
+        <td>Invoke-WmiMethod or wmiexec.py for command execution</td>
+        <td>Execute payload via WMI</td>
+        <td>PowerShell, wmiexec.py</td>
+        <td>Avoid noisy payloads; use minimal commands</td>
+      </tr>
+
+      <tr>
+  <td><input type="checkbox"></td>
+  <td>Trust Key Abuse (Cross-Realm TGT Forging)</td>
+  <td>Escalate to trusted domain by forging TGT using trust key</td>
+  <td>Kerberos trust keys allow forging cross-realm tickets</td>
+  <td>Dump trust key/KRBTGT and forge TGT</td>
+  <td>Inject TGT and access foreign domain services</td>
+  <td>Mimikatz, Rubeus</td>
+  <td>Limit TGT scope; avoid high-profile accounts</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>ADCS ESC1: Misconfigured Certificate Template</td>
+  <td>Impersonate users via template that allows user-supplied subjects</td>
+  <td>ENROLLEE_SUPPLIES_SUBJECT enabled with low auth</td>
+  <td>Request cert with target UPN</td>
+  <td>Use cert to authenticate via PKINIT</td>
+  <td>Certify, ForgeCert, Rubeus</td>
+  <td>Target mid-tier accounts; avoid detection</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>ADCS ESC8: NTLM Relay to Web Enrollment</td>
+  <td>Relay NTLM to issue certificates</td>
+  <td>Web Enrollment allows unsigned NTLM negotiation</td>
+  <td>Relay auth to ADCS endpoint</td>
+  <td>Request cert and impersonate high-priv user</td>
+  <td>Impacket (ntlmrelayx), Certify</td>
+  <td>Clean up certs and log entries</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>PetitPotam + ADCS (EFSRPC Coercion)</td>
+  <td>Force machine auth via EFSRPC and relay to ADCS</td>
+  <td>EFSRPC coerce NTLM auth to relay point</td>
+  <td>Trigger EFSRPC coercion using PetitPotam</td>
+  <td>Relay to ADCS and request certificate</td>
+  <td>PetitPotam, ntlmrelayx, Certify</td>
+  <td>Use selectively; avoid excessive noise</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>AdminSDHolder Persistence</td>
+  <td>Persistent control via ACL on AdminSDHolder</td>
+  <td>AdminSDHolder sets ACLs on protected users</td>
+  <td>Modify AdminSDHolder ACLs</td>
+  <td>Get control over Domain Admins periodically</td>
+  <td>PowerView, Set-ACL</td>
+  <td>Delay changes and remove traces</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>SID Filtering Bypass</td>
+  <td>Impersonate foreign domain users via SIDHistory</td>
+  <td>Poorly filtered trusts allow SID injection</td>
+  <td>Create golden ticket with extra SIDs</td>
+  <td>Access resources in trusted domain</td>
+  <td>Mimikatz</td>
+  <td>Limit SID usage; avoid well-known SIDs</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>LDAP ACL Enumeration & Abuse</td>
+  <td>Find and abuse weak ACLs on AD objects</td>
+  <td>Misconfigured ACLs allow privilege escalation</td>
+  <td>Enumerate using PowerView/BloodHound</td>
+  <td>Exploit RBCD, DCSync, or object control</td>
+  <td>BloodHound, PowerView, SharpHound</td>
+  <td>Prefer low-visibility objects; clean up after</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Printer Bug (MS-RPRN Coercion)</td>
+  <td>Force system to auth to attacker listener</td>
+  <td>Spooler forces auth to remote UNC path</td>
+  <td>Trigger print request to attacker's SMB</td>
+  <td>Relay or capture machine hash</td>
+  <td>SpoolSample, Impacket</td>
+  <td>Limit usage; avoid DoS on printer services</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Unusual SPN Registration for Lateral Movement</td>
+  <td>Use fake SPNs to capture TGS or redirect auth</td>
+  <td>SPNs can be registered by users with write access</td>
+  <td>Register SPN with setspn or script</td>
+  <td>Wait for TGS request and roast/capture</td>
+  <td>setspn, PowerView</td>
+  <td>Use misleading names; monitor SPN alerts</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>ESC2: Template with Weak ACL</td>
+  <td>Low-privilege users can modify the certificate template permissions.</td>
+  <td>Templates with weak DACLs can be edited to allow elevation.</td>
+  <td>Enumerate template permissions with Certify, then modify ACL to allow enrollment.</td>
+  <td>Use Certify to identify and exploit weak ACLs.</td>
+  <td>Certify, PowerView</td>
+  <td>Use minimal DACL changes and remove custom ACEs post-exploitation.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>ESC3: Enrollable by Low-Priv Group</td>
+  <td>Template allows members of a low-privileged group to enroll certificates.</td>
+  <td>Misconfiguration allows wide group enrollment without tight control.</td>
+  <td>Use Certify to identify templates accessible by groups like 'Domain Users'.</td>
+  <td>Request certs for target users using ForgeCert or Certify.</td>
+  <td>Certify, ForgeCert, Rubeus</td>
+  <td>Do not request certs for Domain Admins directly.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>ESC4: Manager Approval Misuse</td>
+  <td>Templates require manager approval but attacker can set themselves as manager.</td>
+  <td>Manager approval is not properly enforced; attackers can self-approve.</td>
+  <td>Set attacker account as manager of target object, then enroll.</td>
+  <td>Use ADUC or PowerShell to set manager attribute, then Certify.</td>
+  <td>PowerShell, Certify</td>
+  <td>Ensure quick usage before manager attribute is reset by policies.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>ESC5: Enroll as Machine Template</td>
+  <td>User-controlled object can request machine certs and impersonate computers.</td>
+  <td>Computer templates allow enrollment by authenticated users.</td>
+  <td>Enroll for machine auth certificate using ESC1/3 privilege.</td>
+  <td>Authenticate as computer using forged certificate.</td>
+  <td>ForgeCert, Rubeus</td>
+  <td>Use computer accounts not in monitoring scope.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>ESC6: Authenticated Users Can Enroll</td>
+  <td>Any authenticated user can enroll on the template and impersonate others.</td>
+  <td>Lax permissions on published templates allow wide abuse.</td>
+  <td>Enumerate with Certify and enroll using target identity.</td>
+  <td>Use Rubeus or ForgeCert to request cert, then Kerberos login.</td>
+  <td>Certify, Rubeus</td>
+  <td>Limit cert usage time and clean certificate store.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>ESC7: Vulnerable Unused Template</td>
+  <td>Templates published but unused can still be abused by attackers.</td>
+  <td>Old or legacy templates with insecure settings left exposed.</td>
+  <td>Find unused templates with weak settings and enroll.</td>
+  <td>Use Certify to list and ForgeCert to request.</td>
+  <td>Certify, ForgeCert</td>
+  <td>Avoid highly visible templates; cleanup metadata if possible.</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>DCSync via GenericAll / Replication Rights</td>
+  <td>Obtain password hashes by syncing AD like a domain controller.</td>
+  <td>Accounts with replication rights can pull sensitive data from NTDS.dit.</td>
+  <td>Identify users/groups with 'Replicate Directory Changes' and use DCSync.</td>
+  <td>Perform DCSync with Mimikatz or Impacket.</td>
+  <td>Mimikatz, Impacket, PowerView</td>
+  <td>Avoid frequent use; remove permissions post-exploitation.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Abusing GenericWrite on User Object</td>
+  <td>Gain access by overwriting sensitive attributes like logonScript or UPN.</td>
+  <td>GenericWrite allows modifying user attributes for lateral movement.</td>
+  <td>Use PowerView to identify writable user objects.</td>
+  <td>Modify logonScript or set new UPN, then trigger login.</td>
+  <td>PowerView, PowerShell</td>
+  <td>Revert changes after gaining access to avoid detection.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Overpass-the-Hash (Pass-the-Key)</td>
+  <td>Authenticate with NTLM hash without cracking it.</td>
+  <td>Kerberos TGT can be requested using NTLM hash and RC4-HMAC.</td>
+  <td>Obtain NTLM hash using Mimikatz, then request TGT with Rubeus.</td>
+  <td>Request TGT and inject with Rubeus.</td>
+  <td>Mimikatz, Rubeus</td>
+  <td>Use for short sessions; rotate ticket periodically.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>RBCD via AddAllowedToAct (ACL Abuse)</td>
+  <td>Configure RBCD to allow any system to impersonate another.</td>
+  <td>Write access to 'msDS-AllowedToActOnBehalfOfOtherIdentity' enables lateral movement.</td>
+  <td>Grant RBCD rights on a privileged system to a controlled computer account.</td>
+  <td>Create new computer object and configure RBCD, then authenticate.</td>
+  <td>PowerView, Rubeus, Powermad</td>
+  <td>Clean up computer object and delegation settings.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Abusing Resource-Based Constrained Delegation (No Pre-auth)</td>
+  <td>Combine with AS-REP Roasting for delegation abuse.</td>
+  <td>RBCD can be abused when pre-auth is disabled on accounts.</td>
+  <td>Use AS-REP hash and configure RBCD via AddAllowedToAct.</td>
+  <td>Crack hash and use delegation to impersonate user.</td>
+  <td>Rubeus, Mimikatz, PowerView</td>
+  <td>Avoid DA accounts; target non-monitored users.</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>DCShadow Attack</td>
+  <td>Injects rogue changes directly into AD by impersonating a domain controller.</td>
+  <td>Requires special privileges to register as a DC and push directory changes.</td>
+  <td>Register attacker as rogue DC and push malicious attributes (e.g., SIDHistory).</td>
+  <td>Use Mimikatz to run `lsadump::dcshadow` after configuring the environment.</td>
+  <td>Mimikatz</td>
+  <td>Use only with stealthy admin access; unregister DC after use.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Golden Ticket Attack</td>
+  <td>Create Kerberos TGT offline and impersonate any user, including domain admins.</td>
+  <td>Requires KRBTGT NTLM hash, usually obtained via DCSync.</td>
+  <td>Extract KRBTGT hash and forge a TGT with arbitrary SID and user.</td>
+  <td>Forge TGT with Mimikatz and inject into session.</td>
+  <td>Mimikatz</td>
+  <td>Avoid ticket lifetime >1 hour; clean injected tickets.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Skeleton Key Attack</td>
+  <td>Load a master password (skeleton key) into memory to allow access to all accounts.</td>
+  <td>Bypass authentication by patching LSASS process in memory.</td>
+  <td>Inject skeleton key on DC using Mimikatz and use fixed password to log in.</td>
+  <td>Run `mimikatz sekurlsa::patch` on DC and use key to authenticate.</td>
+  <td>Mimikatz</td>
+  <td>Trigger alerts on AV/EDR; limit use to labs or stealth environments.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>SIDHistory Injection</td>
+  <td>Grants elevated access by injecting SIDHistory from privileged accounts.</td>
+  <td>Accounts with WriteMember rights can push privileged SIDs to low-priv accounts.</td>
+  <td>Inject SIDHistory using Mimikatz or PowerShell on a domain-joined system.</td>
+  <td>Modify LDAP attributes or use DCShadow to insert SIDs.</td>
+  <td>Mimikatz, PowerShell, DCShadow</td>
+  <td>Clean up SIDHistory to avoid detection and correlation.</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>AdminSDHolder Abuse</td>
+  <td>Privilege persistence by modifying ACLs of protected accounts group template.</td>
+  <td>Objects under AdminSDHolder inherit permissions every 60 minutes.</td>
+  <td>Add backdoor ACEs to AdminSDHolder to persist access to DA accounts.</td>
+  <td>Use PowerView to add rights and wait for SDProp job to apply ACLs.</td>
+  <td>PowerView, ADSI Edit</td>
+  <td>Remove ACEs from AdminSDHolder after use.</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Unconstrained Delegation Abuse</td>
+  <td>Extract TGTs from memory of machines with unconstrained delegation.</td>
+  <td>Any user logging onto these machines exposes their TGT in memory.</td>
+  <td>Identify machines with unconstrained delegation using PowerView.</td>
+  <td>Force authentication of DA to the host and dump memory.</td>
+  <td>PowerView, Rubeus, Mimikatz</td>
+  <td>Avoid triggering login manually; wait for natural authentication.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Kerberoasting with AES Keys</td>
+  <td>Obtain TGS encrypted with AES256 for offline cracking.</td>
+  <td>Modern environments use AES instead of RC4, requiring different cracking techniques.</td>
+  <td>Use Rubeus to request TGS with /aes flag and crack offline.</td>
+  <td>Target service accounts with SPNs and high privileges.</td>
+  <td>Rubeus, hashcat, john</td>
+  <td>Use selective SPN targeting to avoid noise.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Printer Bug + RBCD</td>
+  <td>Use printer bug to coerce authentication, then relay to abuse RBCD.</td>
+  <td>Triggers an SMB authentication from target system to relay point.</td>
+  <td>Trigger bug using SpoolSample and relay via ntlmrelayx to configure RBCD.</td>
+  <td>Exploit chain for lateral movement without direct DA rights.</td>
+  <td>SpoolSample, ntlmrelayx, impacket</td>
+  <td>Clean up delegation attributes post-access.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Kerberos SID Filtering Bypass</td>
+  <td>Exploit SID history to escalate across trusted domains.</td>
+  <td>SID Filtering is bypassed in certain trust configurations.</td>
+  <td>Add high-priv SID to SIDHistory in child domain user account.</td>
+  <td>Authenticate as user and inherit elevated rights in parent domain.</td>
+  <td>Mimikatz, DCShadow, PowerShell</td>
+  <td>Requires external trust config understanding and careful SID injection.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>AS-REP Roasting (AES Variant)</td>
+  <td>Request encrypted AS-REP responses for users without pre-auth using AES.</td>
+  <td>Stronger encryption requires updated tools and cracking techniques.</td>
+  <td>Use Rubeus or GetNPUsers.py with AES output flag.</td>
+  <td>Crack using hashcat with mode 18200.</td>
+  <td>Rubeus, Impacket, hashcat</td>
+  <td>Avoid brute-forcing strong passwords; target weak naming conventions.</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>DNSAdmin to DC Compromise</td>
+  <td>Use DNSAdmin rights to execute commands as SYSTEM on DC running DNS service.</td>
+  <td>DNSAdmin has permission to modify service DLL path used by DNS server.</td>
+  <td>Identify users/groups with DNSAdmin rights and inject malicious DLL.</td>
+  <td>Restart DNS service or wait for reboot to trigger DLL execution.</td>
+  <td>PowerView, dnscmd, sc.exe</td>
+  <td>Limit visibility by restoring original DLL path quickly post-access.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Abusing ACL on GPO</td>
+  <td>Modify Group Policy Object to execute payload on linked systems.</td>
+  <td>Write rights on GPO lets attacker change scripts or registry settings.</td>
+  <td>Identify GPOs linked to OUs with high-priv systems using SharpGPOAbuse.</td>
+  <td>Inject startup script or Scheduled Task via GPO.</td>
+  <td>SharpGPOAbuse, gpmc.msc</td>
+  <td>Use fake GPO name or cleanup entries to avoid detection.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Shadow Credentials (Key Credential Link Attack)</td>
+  <td>Forge key credentials to authenticate as high-priv user.</td>
+  <td>Attacker sets alternate credentials (certificate) if write access to user object.</td>
+  <td>Add KeyCredential to user object and perform certificate authentication.</td>
+  <td>Use Whisker or targeted scripts to register certificate.</td>
+  <td>Whisker, Certify, Rubeus</td>
+  <td>Requires cleanup of certificate mapping from user object.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Exchange PrivEsc via WriteDacl</td>
+  <td>Abuse Exchange permissions to escalate to domain admin.</td>
+  <td>Exchange groups often have excessive rights in domain.</td>
+  <td>Identify Exchange Trusted Subsystem and grant DCSync rights to user.</td>
+  <td>Perform DCSync after granting Replication rights.</td>
+  <td>PowerView, Mimikatz</td>
+  <td>Ensure Exchange permissions are restored after access.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>ReadGMSAPassword for Privilege Escalation</td>
+  <td>Read Group Managed Service Account (gMSA) password hash.</td>
+  <td>Users with read access to gMSA passwords can impersonate services.</td>
+  <td>Query gMSA password using PowerShell or Mimikatz.</td>
+  <td>Use hash for Overpass-the-Hash or service impersonation.</td>
+  <td>Mimikatz, PowerShell, Get-ADServiceAccount</td>
+  <td>Limit access to gMSAs and rotate credentials regularly.</td>
+</tr>
+
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Kerberos Delegation Loop</td>
+  <td>Create circular delegation paths to escalate privileges silently.</td>
+  <td>Poorly configured delegation allows infinite loops via chained access.</td>
+  <td>Analyze delegation paths using BloodHound or AD Explorer.</td>
+  <td>Exploit loop to impersonate privileged accounts through chained delegation.</td>
+  <td>BloodHound, Rubeus, PowerView</td>
+  <td>Avoid noisy paths and clean misconfigured delegation entries.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Abuse Service Principal Name (SPN) via Resource-based Constrained Delegation</td>
+  <td>Target SPN-registered objects to gain RBCD over a service.</td>
+  <td>Improper ACLs on service objects allow attacker-controlled computer to configure delegation.</td>
+  <td>Create a computer object and configure msDS-AllowedToActOnBehalfOfOtherIdentity.</td>
+  <td>Use S4U2self + S4U2proxy to impersonate user to target service.</td>
+  <td>Rubeus, PowerView, SetSPN</td>
+  <td>Clean up computer object and delegation attributes post-access.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Malicious GPO Deployment</td>
+  <td>Deploy a malicious GPO to linked OU to gain persistence or escalate.</td>
+  <td>Write access to GPO or linked OU enables this abuse.</td>
+  <td>Craft GPO with startup script, task scheduler or backdoor setting.</td>
+  <td>Link GPO to target OU using ADSI or GPMC tools.</td>
+  <td>SharpGPOAbuse, gpmc.msc, ADSI</td>
+  <td>Remove GPO or restore original policy post-operation.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Kerberos Constrained Delegation (KCD) Abuse</td>
+  <td>Impersonate users to services using S4U2self and S4U2proxy with KCD.</td>
+  <td>Requires delegation rights on target service account.</td>
+  <td>Configure computer or user with msDS-AllowedToDelegateTo to impersonate.</td>
+  <td>Use forged ticket to access service on behalf of privileged user.</td>
+  <td>Rubeus, PowerView</td>
+  <td>Target services with sensitive permissions only; clear logs.</td>
+</tr>
+<tr>
+  <td><input type="checkbox"></td>
+  <td>Unquoted Service Path Privilege Escalation</td>
+  <td>Exploit unquoted service path to execute malicious binary as SYSTEM.</td>
+  <td>Service with unquoted path and spaces can lead to execution of attacker binary.</td>
+  <td>Find services with unquoted paths using PowerUp.</td>
+  <td>Place malicious executable in writable path portion.</td>
+  <td>PowerUp, sc.exe, accesschk.exe</td>
+  <td>Requires service restart; cleanup dropped files post-escalation.</td>
+</tr>
+</tbody>
+  </table>
+
+  <script>
+    function filterTable() {
+      const input = document.getElementById("searchInput");
+      const filter = input.value.toLowerCase();
+      const rows = document.getElementById("attackTable").getElementsByTagName("tr");
+      for (let i = 1; i < rows.length; i++) {
+        const rowText = rows[i].innerText.toLowerCase();
+        rows[i].style.display = rowText.includes(filter) ? "" : "none";
+      }
+    }
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+  </script>
+</body>
+</html>
