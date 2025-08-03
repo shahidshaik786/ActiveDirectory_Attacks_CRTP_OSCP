@@ -87,6 +87,8 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 ## 📋 Attack Descriptions
 
 
+<a name="as-rep-roasting"></a>
+<details>
   <a name="as-rep-roasting"></a>
 <details>
   <summary><strong>1. AS-REP Roasting</strong></summary>
