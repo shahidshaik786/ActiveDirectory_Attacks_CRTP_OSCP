@@ -40,25 +40,25 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - [23. RID Cycling](#rid-cycling)
 - [24. Token Impersonation](#token-impersonation)
 - [25. WMI Lateral Movement](#wmi-lateral-movement)
-- [26. ADCS ESC1: Misconfigured Certificate Template](#adcs-esc1:-misconfigured-certificate-template)
-- [27. ADCS ESC8: NTLM Relay to Web Enrollment](#adcs-esc8:-ntlm-relay-to-web-enrollment)
-- [28. PetitPotam + ADCS (EFSRPC Coercion)](#petitpotam-+-adcs-(efsrpc-coercion))
+- [26. ADCS ESC1: Misconfigured Certificate Template](#adcs-esc1%3A-misconfigured-certificate-template)
+- [27. ADCS ESC8: NTLM Relay to Web Enrollment](#adcs-esc8%3A-ntlm-relay-to-web-enrollment)
+- [28. PetitPotam + ADCS (EFSRPC Coercion)](#petitpotam-%2B-adcs-%28efsrpc-coercion%29)
 - [29. AdminSDHolder Persistence](#adminsdholder-persistence)
 - [30. SID Filtering Bypass](#sid-filtering-bypass)
-- [31. LDAP ACL Enumeration & Abuse](#ldap-acl-enumeration-&-abuse)
-- [32. Printer Bug (MS-RPRN Coercion)](#printer-bug-(ms-rprn-coercion))
+- [31. LDAP ACL Enumeration & Abuse](#ldap-acl-enumeration-%26-abuse)
+- [32. Printer Bug (MS-RPRN Coercion)](#printer-bug-%28ms-rprn-coercion%29)
 - [33. Unusual SPN Registration for Lateral Movement](#unusual-spn-registration-for-lateral-movement)
-- [34. ESC2: Template with Weak ACL](#esc2:-template-with-weak-acl)
-- [35. ESC3: Enrollable by Low-Priv Group](#esc3:-enrollable-by-low-priv-group)
-- [36. ESC4: Manager Approval Misuse](#esc4:-manager-approval-misuse)
-- [37. ESC5: Enroll as Machine Template](#esc5:-enroll-as-machine-template)
-- [38. ESC6: Authenticated Users Can Enroll](#esc6:-authenticated-users-can-enroll)
-- [39. ESC7: Vulnerable Unused Template](#esc7:-vulnerable-unused-template)
+- [34. ESC2: Template with Weak ACL](#esc2%3A-template-with-weak-acl)
+- [35. ESC3: Enrollable by Low-Priv Group](#esc3%3A-enrollable-by-low-priv-group)
+- [36. ESC4: Manager Approval Misuse](#esc4%3A-manager-approval-misuse)
+- [37. ESC5: Enroll as Machine Template](#esc5%3A-enroll-as-machine-template)
+- [38. ESC6: Authenticated Users Can Enroll](#esc6%3A-authenticated-users-can-enroll)
+- [39. ESC7: Vulnerable Unused Template](#esc7%3A-vulnerable-unused-template)
 - [40. DCSync via GenericAll / Replication Rights](#dcsync-via-genericall--replication-rights)
 - [41. Abusing GenericWrite on User Object](#abusing-genericwrite-on-user-object)
-- [42. Overpass-the-Hash (Pass-the-Key)](#overpass-the-hash-(pass-the-key))
-- [43. RBCD via AddAllowedToAct (ACL Abuse)](#rbcd-via-addallowedtoact-(acl-abuse))
-- [44. Abusing Resource-Based Constrained Delegation (No Pre-auth)](#abusing-resource-based-constrained-delegation-(no-pre-auth))
+- [42. Overpass-the-Hash (Pass-the-Key)](#overpass-the-hash-%28pass-the-key%29)
+- [43. RBCD via AddAllowedToAct (ACL Abuse)](#rbcd-via-addallowedtoact-%28acl-abuse%29)
+- [44. Abusing Resource-Based Constrained Delegation (No Pre-auth)](#abusing-resource-based-constrained-delegation-%28no-pre-auth%29)
 - [45. DCShadow Attack](#dcshadow-attack)
 - [46. Golden Ticket Attack](#golden-ticket-attack)
 - [47. Skeleton Key Attack](#skeleton-key-attack)
@@ -66,18 +66,18 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - [49. AdminSDHolder Abuse](#adminsdholder-abuse)
 - [50. Unconstrained Delegation Abuse](#unconstrained-delegation-abuse)
 - [51. Kerberoasting with AES Keys](#kerberoasting-with-aes-keys)
-- [52. Printer Bug + RBCD](#printer-bug-+-rbcd)
+- [52. Printer Bug + RBCD](#printer-bug-%2B-rbcd)
 - [53. Kerberos SID Filtering Bypass](#kerberos-sid-filtering-bypass)
-- [54. AS-REP Roasting (AES Variant)](#as-rep-roasting-(aes-variant))
+- [54. AS-REP Roasting (AES Variant)](#as-rep-roasting-%28aes-variant%29)
 - [55. DNSAdmin to DC Compromise](#dnsadmin-to-dc-compromise)
 - [56. Abusing ACL on GPO](#abusing-acl-on-gpo)
-- [57. Shadow Credentials (Key Credential Link Attack)](#shadow-credentials-(key-credential-link-attack))
+- [57. Shadow Credentials (Key Credential Link Attack)](#shadow-credentials-%28key-credential-link-attack%29)
 - [58. Exchange PrivEsc via WriteDacl](#exchange-privesc-via-writedacl)
 - [59. ReadGMSAPassword for Privilege Escalation](#readgmsapassword-for-privilege-escalation)
 - [60. Kerberos Delegation Loop](#kerberos-delegation-loop)
-- [61. Abuse Service Principal Name (SPN) via Resource-based Constrained Delegation](#abuse-service-principal-name-(spn)-via-resource-based-constrained-delegation)
+- [61. Abuse Service Principal Name (SPN) via Resource-based Constrained Delegation](#abuse-service-principal-name-%28spn%29-via-resource-based-constrained-delegation)
 - [62. Malicious GPO Deployment](#malicious-gpo-deployment)
-- [63. Kerberos Constrained Delegation (KCD) Abuse](#kerberos-constrained-delegation-(kcd)-abuse)
+- [63. Kerberos Constrained Delegation (KCD) Abuse](#kerberos-constrained-delegation-%28kcd%29-abuse)
 - [64. Unquoted Service Path Privilege Escalation](#unquoted-service-path-privilege-escalation)
 ---
 
@@ -408,6 +408,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 
 </details>
 
+<a name="adcs-esc1%3A-misconfigured-certificate-template"></a>
 <details>
   <summary><strong>26. ADCS ESC1: Misconfigured Certificate Template</strong></summary>
 
@@ -419,6 +420,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Target mid-tier accounts; avoid detection  
 
 </details>
+<a name="adcs-esc8%3A-ntlm-relay-to-web-enrollment"></a>
 <details>
   <summary><strong>27. ADCS ESC8: NTLM Relay to Web Enrollment</strong></summary>
 
@@ -430,6 +432,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Clean up certs and log entries  
 
 </details>
+<a name="petitpotam-%2B-adcs-%28efsrpc-coercion%29"></a>
 <details>
   <summary><strong>28. PetitPotam + ADCS (EFSRPC Coercion)</strong></summary>
 
@@ -441,6 +444,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Use selectively; avoid excessive noise  
 
 </details>
+<a name="adminsdholder-persistence"></a>
 <details>
   <summary><strong>29. AdminSDHolder Persistence</strong></summary>
 
@@ -452,6 +456,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Delay changes and remove traces  
 
 </details>
+<a name="sid-filtering-bypass"></a>
 <details>
   <summary><strong>30. SID Filtering Bypass</strong></summary>
 
@@ -463,6 +468,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Limit SID usage; avoid well-known SIDs  
 
 </details>
+<a name="ldap-acl-enumeration-%26-abuse"></a>
 <details>
   <summary><strong>31. LDAP ACL Enumeration & Abuse</strong></summary>
 
@@ -474,6 +480,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Prefer low-visibility objects; clean up after  
 
 </details>
+<a name="printer-bug-%28ms-rprn-coercion%29"></a>
 <details>
   <summary><strong>32. Printer Bug (MS-RPRN Coercion)</strong></summary>
 
@@ -485,6 +492,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Limit usage; avoid DoS on printer services  
 
 </details>
+<a name="unusual-spn-registration-for-lateral-movement"></a>
 <details>
   <summary><strong>33. Unusual SPN Registration for Lateral Movement</strong></summary>
 
@@ -496,6 +504,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Use misleading names; monitor SPN alerts  
 
 </details>
+<a name="esc2%3A-template-with-weak-acl"></a>
 <details>
   <summary><strong>34. ESC2: Template with Weak ACL</strong></summary>
 
@@ -507,6 +516,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Use minimal DACL changes and remove custom ACEs post-exploitation.  
 
 </details>
+<a name="esc3%3A-enrollable-by-low-priv-group"></a>
 <details>
   <summary><strong>35. ESC3: Enrollable by Low-Priv Group</strong></summary>
 
@@ -518,6 +528,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Do not request certs for Domain Admins directly.  
 
 </details>
+<a name="esc4%3A-manager-approval-misuse"></a>
 <details>
   <summary><strong>36. ESC4: Manager Approval Misuse</strong></summary>
 
@@ -529,6 +540,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Ensure quick usage before manager attribute is reset by policies.  
 
 </details>
+<a name="esc5%3A-enroll-as-machine-template"></a>
 <details>
   <summary><strong>37. ESC5: Enroll as Machine Template</strong></summary>
 
@@ -540,6 +552,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Use computer accounts not in monitoring scope.  
 
 </details>
+<a name="esc6%3A-authenticated-users-can-enroll"></a>
 <details>
   <summary><strong>38. ESC6: Authenticated Users Can Enroll</strong></summary>
 
@@ -551,6 +564,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Limit cert usage time and clean certificate store.  
 
 </details>
+<a name="esc7%3A-vulnerable-unused-template"></a>
 <details>
   <summary><strong>39. ESC7: Vulnerable Unused Template</strong></summary>
 
@@ -562,6 +576,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Avoid highly visible templates; cleanup metadata if possible.  
 
 </details>
+<a name="dcsync-via-genericall--replication-rights"></a>
 <details>
   <summary><strong>40. DCSync via GenericAll / Replication Rights</strong></summary>
 
@@ -573,6 +588,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Avoid frequent use; remove permissions post-exploitation.  
 
 </details>
+<a name="abusing-genericwrite-on-user-object"></a>
 <details>
   <summary><strong>41. Abusing GenericWrite on User Object</strong></summary>
 
@@ -584,6 +600,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Revert changes after gaining access to avoid detection.  
 
 </details>
+<a name="overpass-the-hash-%28pass-the-key%29"></a>
 <details>
   <summary><strong>42. Overpass-the-Hash (Pass-the-Key)</strong></summary>
 
@@ -595,6 +612,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Use for short sessions; rotate ticket periodically.  
 
 </details>
+<a name="rbcd-via-addallowedtoact-%28acl-abuse%29"></a>
 <details>
   <summary><strong>43. RBCD via AddAllowedToAct (ACL Abuse)</strong></summary>
 
@@ -606,6 +624,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Clean up computer object and delegation settings.  
 
 </details>
+<a name="abusing-resource-based-constrained-delegation-%28no-pre-auth%29"></a>
 <details>
   <summary><strong>44. Abusing Resource-Based Constrained Delegation (No Pre-auth)</strong></summary>
 
@@ -617,6 +636,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Avoid DA accounts; target non-monitored users.  
 
 </details>
+<a name="dcshadow-attack"></a>
 <details>
   <summary><strong>45. DCShadow Attack</strong></summary>
 
@@ -628,6 +648,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Use only with stealthy admin access; unregister DC after use.  
 
 </details>
+<a name="golden-ticket-attack"></a>
 <details>
   <summary><strong>46. Golden Ticket Attack</strong></summary>
 
@@ -639,6 +660,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Avoid ticket lifetime >1 hour; clean injected tickets.  
 
 </details>
+<a name="skeleton-key-attack"></a>
 <details>
   <summary><strong>47. Skeleton Key Attack</strong></summary>
 
@@ -650,6 +672,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Trigger alerts on AV/EDR; limit use to labs or stealth environments.  
 
 </details>
+<a name="sidhistory-injection"></a>
 <details>
   <summary><strong>48. SIDHistory Injection</strong></summary>
 
@@ -661,6 +684,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Clean up SIDHistory to avoid detection and correlation.  
 
 </details>
+<a name="adminsdholder-abuse"></a>
 <details>
   <summary><strong>49. AdminSDHolder Abuse</strong></summary>
 
@@ -672,6 +696,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Remove ACEs from AdminSDHolder after use.  
 
 </details>
+<a name="unconstrained-delegation-abuse"></a>
 <details>
   <summary><strong>50. Unconstrained Delegation Abuse</strong></summary>
 
@@ -683,6 +708,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Avoid triggering login manually; wait for natural authentication.  
 
 </details>
+<a name="kerberoasting-with-aes-keys"></a>
 <details>
   <summary><strong>51. Kerberoasting with AES Keys</strong></summary>
 
@@ -694,6 +720,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Use selective SPN targeting to avoid noise.  
 
 </details>
+<a name="printer-bug-%2B-rbcd"></a>
 <details>
   <summary><strong>52. Printer Bug + RBCD</strong></summary>
 
@@ -705,6 +732,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Clean up delegation attributes post-access.  
 
 </details>
+<a name="kerberos-sid-filtering-bypass"></a>
 <details>
   <summary><strong>53. Kerberos SID Filtering Bypass</strong></summary>
 
@@ -716,6 +744,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Requires external trust config understanding and careful SID injection.  
 
 </details>
+<a name="as-rep-roasting-%28aes-variant%29"></a>
 <details>
   <summary><strong>54. AS-REP Roasting (AES Variant)</strong></summary>
 
@@ -727,6 +756,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Avoid brute-forcing strong passwords; target weak naming conventions.  
 
 </details>
+<a name="dnsadmin-to-dc-compromise"></a>
 <details>
   <summary><strong>55. DNSAdmin to DC Compromise</strong></summary>
 
@@ -738,6 +768,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Limit visibility by restoring original DLL path quickly post-access.  
 
 </details>
+<a name="abusing-acl-on-gpo"></a>
 <details>
   <summary><strong>56. Abusing ACL on GPO</strong></summary>
 
@@ -749,6 +780,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Use fake GPO name or cleanup entries to avoid detection.  
 
 </details>
+<a name="shadow-credentials-%28key-credential-link-attack%29"></a>
 <details>
   <summary><strong>57. Shadow Credentials (Key Credential Link Attack)</strong></summary>
 
@@ -760,6 +792,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Requires cleanup of certificate mapping from user object.  
 
 </details>
+<a name="exchange-privesc-via-writedacl"></a>
 <details>
   <summary><strong>58. Exchange PrivEsc via WriteDacl</strong></summary>
 
@@ -771,6 +804,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Ensure Exchange permissions are restored after access.  
 
 </details>
+<a name="readgmsapassword-for-privilege-escalation"></a>
 <details>
   <summary><strong>59. ReadGMSAPassword for Privilege Escalation</strong></summary>
 
@@ -782,6 +816,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Limit access to gMSAs and rotate credentials regularly.  
 
 </details>
+<a name="kerberos-delegation-loop"></a>
 <details>
   <summary><strong>60. Kerberos Delegation Loop</strong></summary>
 
@@ -793,6 +828,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Avoid noisy paths and clean misconfigured delegation entries.  
 
 </details>
+<a name="abuse-service-principal-name-%28spn%29-via-resource-based-constrained-delegation"></a>
 <details>
   <summary><strong>61. Abuse Service Principal Name (SPN) via Resource-based Constrained Delegation</strong></summary>
 
@@ -804,6 +840,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Clean up computer object and delegation attributes post-access.  
 
 </details>
+<a name="malicious-gpo-deployment"></a>
 <details>
   <summary><strong>62. Malicious GPO Deployment</strong></summary>
 
@@ -815,6 +852,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Remove GPO or restore original policy post-operation.  
 
 </details>
+<a name="kerberos-constrained-delegation-%28kcd%29-abuse"></a>
 <details>
   <summary><strong>63. Kerberos Constrained Delegation (KCD) Abuse</strong></summary>
 
@@ -826,6 +864,7 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Target services with sensitive permissions only; clear logs.  
 
 </details>
+<a name="unquoted-service-path-privilege-escalation"></a>
 <details>
   <summary><strong>64. Unquoted Service Path Privilege Escalation</strong></summary>
 
@@ -837,4 +876,5 @@ This document provides a detailed walkthrough of **25 real-world Active Director
 - **Stealth Tips**: Requires service restart; cleanup dropped files post-escalation.  
 
 </details>
+
 
